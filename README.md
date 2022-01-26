@@ -232,7 +232,7 @@ kubectl delete provider.pkg provider-gcp
   * [AWS Provider Config](providers/aws-provider.yaml)    
   * [Azure Provider Config](providers/azure-provider.yaml)    
   * [GCP Provider Config](providers/gcp-provider.yaml)
-* `claims/` - Examples to consume defined bny Ops XRDs
+* `claims/` - Examples to consume defined by Ops XRDs
   * [EKS Claim](claims/eks-claim.yaml)    
   * [AKS Claim](claims/aks-claim.yaml)    
   * [GKE Claim](claims/gke-claim.yaml)     
