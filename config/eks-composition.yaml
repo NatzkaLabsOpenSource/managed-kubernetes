@@ -1,0 +1,674 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: eks
+  labels:
+    crossplane.io/xrd: xmanagedclusters.compositions.io
+    provider: aws
+    cluster: eks
+spec:
+  compositeTypeRef:
+    apiVersion: compositions.io/v1alpha1
+    kind: XManagedCluster
+  writeConnectionSecretsToNamespace: upbound-system  
+  patchSets:
+  - name: metadata
+    patches:
+    - fromFieldPath: metadata.labels
+  resources:
+  # IAM Roles
+  - name: iamrole-controlplane
+    base:
+      apiVersion: iam.aws.crossplane.io/v1beta1
+      kind: Role
+      spec:
+        forProvider:
+          assumeRolePolicyDocument: |
+            {
+              "Version": "2012-10-17",
+              "Statement": [
+                  {
+                      "Effect": "Allow",
+                      "Principal": {
+                          "Service": [
+                              "eks.amazonaws.com"
+                          ]
+                      },
+                      "Action": [
+                          "sts:AssumeRole"
+                      ]
+                  }
+              ]
+            }
+        providerConfigRef:
+          name: aws-provider
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-controlplane" 
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.labels.role
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-controlplane"  
+  - name: iamrole-nodegroup
+    base:
+      apiVersion: iam.aws.crossplane.io/v1beta1
+      kind: Role
+      spec:
+        forProvider:
+          assumeRolePolicyDocument: |
+            {
+              "Version": "2012-10-17",
+              "Statement": [
+                  {
+                      "Effect": "Allow",
+                      "Principal": {
+                          "Service": [
+                              "ec2.amazonaws.com"
+                          ]
+                      },
+                      "Action": [
+                          "sts:AssumeRole"
+                      ]
+                  }
+              ]
+            }                
+        providerConfigRef:
+          name: aws-provider
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-nodegroup"
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.labels.role
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-nodegroup"
+  - name: iamrole-fargateprofile
+    base:
+      apiVersion: iam.aws.crossplane.io/v1beta1
+      kind: Role
+      spec:
+        forProvider:
+          assumeRolePolicyDocument: |
+            {
+              "Version": "2012-10-17",
+              "Statement": [
+                  {
+                      "Effect": "Allow",
+                      "Principal": {
+                          "Service": [
+                              "eks-fargate-pods.amazonaws.com"
+                          ]
+                      },
+                      "Action": [
+                          "sts:AssumeRole"
+                      ]
+                  }
+              ]
+            }         
+        providerConfigRef:
+          name: aws-provider
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-fargateprofile"
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.labels.role
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-fargateprofile"
+
+  # IAM ROLE POLICY ATTCHMENTS
+  - name: iamrolepolicy-cp-001
+    base:
+      apiVersion: iam.aws.crossplane.io/v1beta1
+      kind: RolePolicyAttachment
+      spec:
+        forProvider:
+          policyArn: arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+          roleNameSelector:
+            matchControllerRef: true
+        providerConfigRef:
+          name: aws-provider
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-cp-001"
+    - fromFieldPath: spec.id
+      toFieldPath: spec.forProvider.roleNameSelector.matchLabels.role
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-controlplane"          
+  - name: iamrolepolicy-cp-002 
+    base:
+      apiVersion: iam.aws.crossplane.io/v1beta1
+      kind: RolePolicyAttachment
+      spec:
+        forProvider:
+          policyArn: arn:aws:iam::aws:policy/AmazonEKSServicePolicy
+          roleNameSelector:
+            matchControllerRef: true
+        providerConfigRef:
+          name: aws-provider
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-cp-002"
+    - fromFieldPath: spec.id
+      toFieldPath: spec.forProvider.roleNameSelector.matchLabels.role
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-controlplane"
+  - name:  iamrolepolicy-ng-001
+    base:
+      apiVersion: iam.aws.crossplane.io/v1beta1
+      kind: RolePolicyAttachment
+      spec:
+        forProvider:
+          policyArn: arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+          roleNameSelector:
+            matchControllerRef: true
+        providerConfigRef:
+          name: aws-provider
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-ng-001"
+    - fromFieldPath: spec.id
+      toFieldPath: spec.forProvider.roleNameSelector.matchLabels.role
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-nodegroup"
+  - name: iamrolepolicy-ng-002
+    base:
+      apiVersion: iam.aws.crossplane.io/v1beta1
+      kind: RolePolicyAttachment
+      spec:
+        forProvider:
+          policyArn: arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+          roleNameSelector:
+            matchControllerRef: true
+        providerConfigRef:
+          name: aws-provider
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-ng-002"
+    - fromFieldPath: spec.id
+      toFieldPath: spec.forProvider.roleNameSelector.matchLabels.role
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-nodegroup"
+  - name: iamrolepolicy-ng-003
+    base:
+      apiVersion: iam.aws.crossplane.io/v1beta1
+      kind: RolePolicyAttachment
+      spec:
+        forProvider:
+          policyArn: arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+          roleNameSelector:
+            matchControllerRef: true
+        providerConfigRef:
+          name: aws-provider
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-ng-003"
+    - fromFieldPath: spec.id
+      toFieldPath: spec.forProvider.roleNameSelector.matchLabels.role
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-nodegroup"
+  - name:  iamrolepolicy-fp-001
+    base:
+      apiVersion: iam.aws.crossplane.io/v1beta1
+      kind: RolePolicyAttachment
+      spec:
+        forProvider:
+          policyArn: arn:aws:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy
+          roleNameSelector:
+            matchControllerRef: true
+        providerConfigRef:
+          name: aws-provider
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-fp-001"
+    - fromFieldPath: spec.id
+      toFieldPath: spec.forProvider.roleNameSelector.matchLabels.role
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-fargateprofile"      
+
+  - name: ec2vpc-uw2
+    base:
+      apiVersion: ec2.aws.crossplane.io/v1beta1
+      kind: VPC
+      spec:
+        forProvider:
+          region: us-west-2
+          cidrBlock: 10.0.0.0/16
+          tags:
+          - key: Name
+            value: eks-cluster
+        providerConfigRef:
+          name: aws-provider
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+
+  - name: ec2sg-ng-uw2
+    base:
+      apiVersion: ec2.aws.crossplane.io/v1beta1
+      kind: SecurityGroup
+      spec:
+        forProvider:
+          description: Cluster communication with worker nodes
+          groupName: ekscluster-sg
+          region: us-west-2
+          vpcIdSelector:
+            matchControllerRef: true
+          egress:
+          - ipProtocol: "-1"
+            ipRanges:
+            - cidrIp: "0.0.0.0/0"
+        providerConfigRef:
+          name: aws-provider
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+
+  - name: ec2snet-pub-uw2a
+    base:
+      apiVersion: ec2.aws.crossplane.io/v1beta1
+      kind: Subnet
+      metadata:
+        labels:
+          zone: us-west-2a
+          access: public
+      spec:
+        forProvider:
+          region: us-west-2
+          availabilityZone: us-west-2a
+          cidrBlock: 10.0.0.0/24
+          vpcIdSelector:
+            matchControllerRef: true
+          mapPublicIPOnLaunch: true
+          tags:
+          - key: Name
+            value: eks-cluster
+          - key: kubernetes.io/role/elb
+            value: "1"
+        providerConfigRef:
+          name: aws-provider
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-pub-2a"
+  - name: ec2snet-pub-uw2b
+    base:
+      apiVersion: ec2.aws.crossplane.io/v1beta1
+      kind: Subnet
+      metadata:
+        labels:
+          zone: us-west-2b
+          access: public
+      spec:
+        forProvider:
+          region: us-west-2
+          availabilityZone: us-west-2b
+          cidrBlock: 10.0.1.0/24
+          vpcIdSelector:
+            matchControllerRef: true
+          mapPublicIPOnLaunch: true
+          tags:
+          - key: Name
+            value: eks-cluster
+          - key: kubernetes.io/role/elb
+            value: "1" 
+        providerConfigRef:
+          name: aws-provider
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-pub-2b"
+  - name: ec2snet-pub-uw2c
+    base:
+      apiVersion: ec2.aws.crossplane.io/v1beta1
+      kind: Subnet
+      metadata:
+        labels:
+          zone: us-west-2c
+          access: public
+      spec:
+        forProvider:
+          region: us-west-2
+          availabilityZone: us-west-2c
+          cidrBlock: 10.0.2.0/24
+          vpcIdSelector:
+            matchControllerRef: true
+          mapPublicIPOnLaunch: true
+          tags:
+          - key: Name
+            value: eks-cluster
+          - key: kubernetes.io/role/elb
+            value: "1"          
+        providerConfigRef:
+          name: aws-provider
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-pub-2c"
+
+  - name: ec2snet-prv-uw2a
+    base:
+      apiVersion: ec2.aws.crossplane.io/v1beta1
+      kind: Subnet
+      metadata:
+        labels:
+          zone: us-west-2a
+          access: private
+      spec:
+        forProvider:
+          region: us-west-2
+          availabilityZone: us-west-2a
+          cidrBlock: 10.0.100.0/24
+          vpcIdSelector:
+            matchControllerRef: true
+          mapPublicIPOnLaunch: true
+          tags:
+          - key: Name
+            value: eks-cluster
+        providerConfigRef:
+          name: aws-provider
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-prv-2a"      
+  - name: ec2snet-prv-uw2b
+    base:
+      apiVersion: ec2.aws.crossplane.io/v1beta1
+      kind: Subnet
+      metadata:
+        labels:
+          zone: us-west-2b
+          access: private
+      spec:
+        forProvider:
+          region: us-west-2
+          availabilityZone: us-west-2b
+          cidrBlock: 10.0.101.0/24
+          vpcIdSelector:
+            matchControllerRef: true
+          mapPublicIPOnLaunch: true
+          tags:
+          - key: Name
+            value: eks-cluster
+        providerConfigRef:
+          name: aws-provider
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-prv-2b"        
+  - name: ec2snet-prv-uw2c
+    base:
+      apiVersion: ec2.aws.crossplane.io/v1beta1
+      kind: Subnet
+      metadata:
+        labels:
+          zone: us-west-2c
+          access: private
+      spec:
+        forProvider:
+          region: us-west-2
+          availabilityZone: us-west-2c
+          cidrBlock: 10.0.102.0/24
+          vpcIdSelector:
+            matchControllerRef: true
+          mapPublicIPOnLaunch: true
+          tags:
+          - key: Name
+            value: eks-cluster          
+        providerConfigRef:
+          name: aws-provider
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-prv-2c"  
+
+  - name: ec2ig-uw2
+    base:
+      apiVersion: ec2.aws.crossplane.io/v1beta1
+      kind: InternetGateway
+      spec:
+        forProvider:
+          region: us-west-2
+          vpcIdSelector:
+            matchControllerRef: true
+        providerConfigRef:
+          name: aws-provider
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+
+  - name: ec2rt-uw2
+    base:
+      apiVersion: ec2.aws.crossplane.io/v1beta1
+      kind: RouteTable
+      spec:
+        forProvider:
+          region: us-west-2
+          vpcIdSelector:
+            matchControllerRef: true
+          routes:
+            - destinationCidrBlock: 0.0.0.0/0
+              gatewayIdSelector:
+                matchControllerRef: true
+          associations:
+            - subnetIdSelector:
+                matchControllerRef: true
+                matchLabels:
+                  zone: us-west-2a
+                  access: public
+            - subnetIdSelector:
+                matchControllerRef: true
+                matchLabels:
+                  zone: us-west-2b
+                  access: public
+            - subnetIdSelector:
+                matchControllerRef: true
+                matchLabels:
+                  zone: us-west-2c
+                  access: public
+        providerConfigRef:
+          name: aws-provider
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name      
+
+  - name: ekscluster-uw2
+    base:
+      apiVersion: eks.aws.crossplane.io/v1beta1
+      kind: Cluster
+      spec:
+        forProvider:
+          region: us-west-2
+          roleArnSelector:
+            matchControllerRef: true
+          resourcesVpcConfig:
+            endpointPrivateAccess: true
+            endpointPublicAccess: true
+            subnetIdSelector:
+              matchControllerRef: true
+        writeConnectionSecretToRef:
+          namespace: upbound-system
+        providerConfigRef:
+          name: aws-provider
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+    - type: ToCompositeFieldPath
+      fromFieldPath: metadata.name
+      toFieldPath: status.clusterName   
+    - fromFieldPath: spec.id
+      toFieldPath: spec.forProvider.roleArnSelector.matchLabels.role
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-controlplane"
+    - fromFieldPath: spec.parameters.version
+      toFieldPath: spec.forProvider.version
+    - fromFieldPath: metadata.uid
+      toFieldPath: spec.writeConnectionSecretToRef.name
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-ekscluster"
+    - fromFieldPath: spec.writeConnectionSecretToRef.namespace         
+    - type: ToCompositeFieldPath
+      fromFieldPath: status.atProvider.status
+      toFieldPath: status.controlPlaneStatus
+    connectionDetails:
+    - fromConnectionSecretKey: kubeconfig
+    readinessChecks:
+    - type: MatchString
+      fieldPath: status.atProvider.status
+      matchString: ACTIVE
+
+  - name: eksnode-uw2
+    base:
+      apiVersion: eks.aws.crossplane.io/v1alpha1
+      kind: NodeGroup
+      spec:
+        forProvider:
+          region: us-west-2
+          clusterNameSelector:
+            matchControllerRef: true
+          nodeRoleSelector:
+            matchControllerRef: true
+          subnetSelector:
+            matchLabels:
+              access: public
+          scalingConfig:
+            maxSize: 5
+        providerConfigRef:
+          name: aws-provider
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+    - fromFieldPath: spec.parameters.nodeSize
+      toFieldPath: spec.forProvider.instanceTypes[0]
+      transforms:
+        - type: map
+          map:
+            small: t3.small
+            medium: t3.medium
+            large: t3.large
+    - fromFieldPath: spec.parameters.nodeCount
+      toFieldPath: spec.forProvider.scalingConfig.minSize
+    - fromFieldPath: spec.parameters.minNodeCount
+      toFieldPath: spec.forProvider.scalingConfig.desiredSize
+    - fromFieldPath: spec.id
+      toFieldPath: spec.forProvider.nodeRoleSelector.matchLabels.role
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-nodegroup"      
+    - type: ToCompositeFieldPath
+      fromFieldPath: status.atProvider.status
+      toFieldPath: status.nodePoolStatus
+    readinessChecks:
+    - type: MatchString
+      fieldPath: status.atProvider.status
+      matchString: ACTIVE
+
+  - name: eksfargate-uw2
+    base: 
+      apiVersion: eks.aws.crossplane.io/v1beta1
+      kind: FargateProfile
+      spec:
+        forProvider:
+          region: us-west-2
+          clusterNameSelector:
+            matchControllerRef: true
+          podExecutionRoleArnSelector:
+            matchControllerRef: true
+          subnetSelector:
+            matchLabels:
+              access: private
+        providerConfigRef:
+          name: aws-provider
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name    
+    - fromFieldPath: spec.parameters.fargateNamespace
+      toFieldPath: spec.forProvider.selectors[0].namespace
+    - fromFieldPath: spec.id
+      toFieldPath: spec.forProvider.podExecutionRoleArnSelector.matchLabels.role
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-fargateprofile"      
+    - type: ToCompositeFieldPath
+      fromFieldPath: status.atProvider.status
+      toFieldPath: status.fargateProfileStatus
+    readinessChecks:
+    - type: MatchString
+      fieldPath: status.atProvider.status
+      matchString: ACTIVE

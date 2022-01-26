@@ -1,0 +1,18 @@
+apiVersion: compositions.io/v1alpha1
+kind: ManagedCluster
+metadata:
+  name: uxpaks
+  namespace: managed
+  labels:
+    owner: andrzej
+spec:
+  id: uxpaks
+  compositionSelector:
+    matchLabels:
+      cluster: aks
+  parameters:
+    version: "1.21.2"
+    # nodeSize: small ### Supported values: small, medium, large
+    # nodeCount: 3
+  writeConnectionSecretToRef:
+    name: uxpaks

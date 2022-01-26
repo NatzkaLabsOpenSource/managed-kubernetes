@@ -1,0 +1,15 @@
+---
+apiVersion: meta.pkg.crossplane.io/v1
+kind: Configuration
+metadata:
+  name: managed-kubernetes
+spec:
+  crossplane:
+    version: ">=v1.2.3"
+  dependsOn:
+    - provider: registry.upbound.io/crossplane/provider-azure
+      version: ">=v0.18.1"
+    - provider: registry.upbound.io/crossplane/provider-aws
+      version: ">=v0.23.0"
+    - provider: registry.upbound.io/crossplane/provider-gcp
+      version: ">=v0.19.0"      
