@@ -27,7 +27,7 @@ Compositions use native Crossplane Providers for AWS, Azure and GCP.
 1. Setup Cloud Credentials
    - [IAM User](https://crossplane.io/docs/v1.6/cloud-providers/aws/aws-provider.html) for AWS
    - [Service Principal](https://crossplane.io/docs/v1.6/cloud-providers/azure/azure-provider.html) for Azure
-   - [Service Account](https://crossplane.io/docs/v1.6/cloud-providers/gcp/gcp-provider.html)) for GCP  
+   - [Service Account](https://crossplane.io/docs/v1.6/cloud-providers/gcp/gcp-provider.html) for GCP  
 
 As an output of last step you should get three credentials files with following content.
 - aws-cred.conf
