@@ -5,7 +5,7 @@ metadata:
   name: managed-kubernetes
 spec:
   crossplane:
-    version: ">=v1.2.3"
+    version: ">=v1.2.3-0"
   dependsOn:
     - provider: registry.upbound.io/crossplane/provider-azure
       version: ">=v0.18.1"
