@@ -77,67 +77,11 @@ az keyvault secret show --name uxpGcpCred --vault-name KeyVault --query value -o
 
 ## Quick Start
 
-### Configure Native Providers
+### Configure Providers
 
 To be able to provision cloud resources using XP we have to create and configure cloud provider resource in Crossplane. This resource stores the cloud information and is used by XP to interact with cloud provider.
 
 We need to set up two environment variables:
-- base64 encoded cloud credentials
-- Name of the Namespace, for UXP: `upbound-system` for XP: `crossplane-system` 
-
-#### AWS Provider
-
-```console
-BASE64ENCODED_AWS_ACCOUNT_CREDS=$(base64 aws-cred.conf | tr -d "\n")
-PROVIDER_SECRET_NAMESPACE=upbound-system
-eval "echo \"$(cat providers/aws-provider.yaml)\"" | kubectl apply -f -
-kubectl get providerconfig aws-provider # or kubectl get providerconfig
-```
-
-#### Azure Provider
-
-```console
-BASE64ENCODED_AZURE_ACCOUNT_CREDS=$(base64 azure-cred.json | tr -d "\n")
-PROVIDER_SECRET_NAMESPACE=upbound-system
-eval "echo \"$(cat providers/azure-provider.yaml)\"" | kubectl apply -f -
-kubectl get providerconfig.azure.crossplane.io
-```
-
-#### GCP Provider
-
-For GCP we need additionally third environment variable: project ID.
-
-```console
-PROJECT_ID=$(gcloud projects list --filter='NAME:<Project Name>' --format="value(PROJECT_ID.scope())")
-BASE64ENCODED_GCP_PROVIDER_CREDS=$(base64 gcp-cred.json | tr -d "\n")
-PROVIDER_SECRET_NAMESPACE=upbound-system
-eval "echo \"$(cat providers/gcp-provider.yaml)\"" | kubectl apply -f -
-kubectl get providerconfig.gcp.crossplane.io
-```
-
-#### Clean-up 
-
-```console
-unset BASE64ENCODED_AWS_ACCOUNT_CREDS BASE64ENCODED_AZURE_ACCOUNT_CREDS BASE64ENCODED_GCP_PROVIDER_CREDS PROJECT_ID PROVIDER_SECRET_NAMESPACE 
-rm aws-cred.conf azure-cred.json gcp-cred.json
-``` 
-
-### Configure Jet Providers
-
-Jet providers are based on a code generation framework that creates Crossplane CRDs
-and sets up the provider to use its generic Terraform Controller.
-With all those CRDs Crossplane has now full coverage of all the resources avaialable
-in the three most popular cloud providers. Terrajet helps to fill the gap of missing resources
-until native providers will catch up.
-Terrajet provider exsits in two versions:
-- limited with the most common cloud CRDs eg. provider-jet-aws@v0.4.0
-- full, including full resource coverage, eg. provider-jet-aws@v0.4.0-preview
-
-Limited version can be installed on any cluster, but full version can cause issues
-on older Kubernetes version. Preview provider can be installed without any issues 
-to the following Kubernetes version: `>=v1.20.13`, `>=v1.21.7`, `>=v1.22.4`, `>=v1.23`
-
-We need to set up two environment variables`
 - base64 encoded cloud credentials
 - Name of the Namespace, for UXP: `upbound-system` for XP: `crossplane-system` 
 
