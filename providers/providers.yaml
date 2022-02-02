@@ -2,14 +2,14 @@
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
-  name: provider-aws
+  name: aws-provider
 spec:
   package: registry.upbound.io/crossplane/provider-aws:v0.23.0 
 ---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
-  name: provider-azure
+  name: azure-provider
 spec:
   package: registry.upbound.io/crossplane/provider-azure:v0.18.1
 ---
@@ -19,3 +19,17 @@ metadata:
   name: gcp-provider
 spec:
   package: registry.upbound.io/crossplane/provider-gcp:v0.19.0
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: helm-provider
+spec:
+  package: registry.upbound.io/crossplane/provider-helm:v0.9.0 
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: kubernetes-provider
+spec:
+  package: registry.upbound.io/crossplane/provider-kubernetes:v0.1.0
