@@ -1,7 +1,7 @@
 # What's New
 
 1. Support for Upstream Crossplane
-1. Support for [Regions](docs/cloud-regions.MD]) in Composite Resource
+1. Support for [Regions](docs/cloud-regions.MD) in Composite Resource
 1. Postprovisioning using Helm and Kubernetes Providers
 
 # Multi-cloud Managed Kubernetes
@@ -364,7 +364,7 @@ Object.kubernetes.crossplane.io
 1. Kubernetes Version
 1. Node Size
 1. Node Count
-1. Region (Cross Cloud [Abstraction](docs/cloud-regions.MD])
+1. Region (Cross Cloud [Abstraction](docs/cloud-regions.MD)
 1. FargateProfile Namespace (valid for EKS)
 
 ## APIs in this Configuration
