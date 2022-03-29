@@ -1,8 +1,8 @@
-# What's New
+# What's New in Release v2
 
 1. Support for Upstream Crossplane
 1. Support for [Regions](docs/cloud-regions.MD) in Composite Resource
-1. Postprovisioning using Helm and Kubernetes Providers
+1. Post Provisioning using Helm and Kubernetes Providers
 
 # Multi-cloud Managed Kubernetes
 
@@ -369,7 +369,7 @@ Object.kubernetes.crossplane.io
 
 ## APIs in this Configuration
 
-* `config-xp/` - Composite Resource Definition (XRD) with satisfying Compositions (`config/` for UXP)
+* `config-xp/`, `config/` - Composite Resource Definition (XRD) with satisfying Compositions
   * [xmanagedcluster XRD](config-xp/definition.yaml)
   * [eks composition](config-xp/eks-composition.yaml) includes :
     * `Role`
@@ -403,7 +403,7 @@ Object.kubernetes.crossplane.io
   * [AWS Provider Config](providers/aws-provider.yaml)    
   * [Azure Provider Config](providers/azure-provider.yaml)    
   * [GCP Provider Config](providers/gcp-provider.yaml)
-* `claim-xp/` - Examples to consume defined by Ops XRDs (`claims/` for UXP)
+* `claim-xp/`, `claims/` - Examples to consume defined by Ops XRDs
   * [EKS Claim](claims-xp/eks-claim.yaml)    
   * [AKS Claim](claims-xp/aks-claim.yaml)    
   * [GKE Claim](claims-xp/gke-claim.yaml)     
