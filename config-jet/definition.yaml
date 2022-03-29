@@ -97,8 +97,6 @@ spec:
                   version:
                     description: Supported by provider Kubernetes version
                     type: string
-                  region:
-                    description: Cloud region for provisioned resources
                   nodeSize:
                     description: The node's size; supported; small, medium, large
                     type: string

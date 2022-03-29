@@ -1,0 +1,15 @@
+---
+apiVersion: meta.pkg.crossplane.io/v1
+kind: Configuration
+metadata:
+  name: managed-kubernetes
+spec:
+  crossplane:
+    version: ">=v1.2.3"
+  dependsOn:
+    - provider: registry.upbound.io/crossplane/provider-jet-aws:v0.2.1
+      version: ">=v0.2.1"
+    - provider: registry.upbound.io/crossplane/provider-jet-azure:v0.2.1
+      version: ">=v0.2.1"
+    - provider: registry.upbound.io/crossplane/provider-jet-gcp:v0.1.0
+      version: ">=v0.1.0"      

@@ -1,0 +1,21 @@
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: aws-jet-provider
+spec:
+  package: registry.upbound.io/crossplane/provider-jet-aws:v0.2.1
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: azure-jet-provider
+spec:
+  package: registry.upbound.io/crossplane/provider-jet-azure:v0.2.1
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: gcp-jet-provider
+spec:
+  package: registry.upbound.io/crossplane/provider-jet-gcp:v0.1.0
