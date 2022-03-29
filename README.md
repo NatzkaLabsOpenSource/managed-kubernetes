@@ -13,18 +13,44 @@ Compositions use native Crossplane Providers for AWS, Azure and GCP.
 
 ## Prerequisites
 
-1. Install Kubernetes Cluster
-1. Configure UXP
-   - Install UXP cli
-   - Install UXP
-   - Configure profile
-   - Connect to Upbound Cloud
-1. Install cloud providers
+Install Kubernetes Cluster. I recommend to use [Rancher Desktop](https://rancherdesktop.io/) for local cluster. 
+
+### Configure XP/UXP
+
+#### Configure XP
+- Install XP cli
+`curl -sL https://raw.githubusercontent.com/crossplane/crossplane/master/install.sh | sh`
+- Install XP
+```
+helm repo add crossplane-stable https://charts.crossplane.io/stable
+helm repo update
+
+helm upgrade --install \
+    crossplane crossplane-stable/crossplane \
+    --namespace crossplane-system \
+    --create-namespace \
+    --wait
+```
+- Verify status
+```
+helm list -n crossplane-system
+
+kubectl get all -n crossplane-system
+```
+
+#### Cponfigure Universal Crossplane
+- Install UXP cli
+- Install UXP
+- Configure profile
+- Connect to Upbound Cloud
+
+### Install cloud providers
    ```console
-   kubectl apply -f providers/providers.yaml
+   # UXP                                                  XP                                   
+   kubectl apply -f providers/providers.yaml              kubectl apply -f providers/xp-providers.yaml
    kubectl get providers.pkg
    ```
-1. Setup Cloud Credentials
+### Setup Cloud Credentials
    - [IAM User](https://crossplane.io/docs/v1.6/cloud-providers/aws/aws-provider.html) for AWS
    - [Service Principal](https://crossplane.io/docs/v1.6/cloud-providers/azure/azure-provider.html) for Azure
    - [Service Account](https://crossplane.io/docs/v1.6/cloud-providers/gcp/gcp-provider.html) for GCP  
@@ -91,7 +117,7 @@ We need to set up two environment variables:
 BASE64ENCODED_AWS_ACCOUNT_CREDS=$(base64 aws-cred.conf | tr -d "\n")
 PROVIDER_SECRET_NAMESPACE=upbound-system
 eval "echo \"$(cat providers/aws-provider.yaml)\"" | kubectl apply -f -
-kubectl get providerconfig aws-provider # or kubectl get providerconfig
+kubectl get providerconfig.aws.crossplane.io
 ```
 
 #### Azure Provider
@@ -134,10 +160,11 @@ Platform team creates compositions and composite resource definitions (XRDs) to 
 managed kubernetes services infrastructure in cloud. 
 
 ```console
-kubectl apply -f config/definition.yaml
-kubectl apply -f config/eks-composition.yaml 
-kubectl apply -f config/aks-composition.yaml 
-kubectl apply -f config/gke-composition.yaml 
+# UXP: CONFIG=config, XP: CONFIG=config-xp                                           
+kubectl apply -f $CONFIG/definition.yaml
+kubectl apply -f $CONFIG/eks-composition.yaml
+kubectl apply -f $CONFIG/aks-composition.yaml
+kubectl apply -f $CONFIG/gke-composition.yaml
 ``` 
 
 #### Consuming the infrastructure by Dev team
@@ -146,9 +173,10 @@ App team provisions infrastructure by creating claim objects for the XRDs define
 
 ```console
 kubectl create ns managed
-kubectl apply -f claims/eks-claim.yaml 
-kubectl apply -f claims/aks-claim.yaml 
-kubectl apply -f claims/gke-claim.yaml 
+# UXP: CLAIMS=claims, XP: CLAIMS=claims-xp
+kubectl apply -f $CLAIMS/eks-claim.yaml 
+kubectl apply -f $CLAIMS/aks-claim.yaml 
+kubectl apply -f $CLAIMS/gke-claim.yaml 
 ``` 
 
 #### Verifying Infrastructure status
@@ -164,6 +192,22 @@ NAME     CLUSTERNAME   CONTROLPLANE   NODEPOOL    FARGATEPROFILE   READY   CONNE
 uxpaks   uxpaks        Succeeded      Succeeded   NA4-uxpaks       True    uxpaks              29m
 uxpeks   uxpeks        ACTIVE         ACTIVE      ACTIVE           True    uxpeks              79m
 uxpgke   uxpgke        RUNNING        RUNNING     NA4-uxpgke       True    uxpgke              52m
+```
+
+### Consuming infrastructure
+
+```
+# Using secret
+kubectl -n managed get secret xpaks --output jsonpath="{.data.kubeconfig}" | base64 -d | tee kubeconfig
+kubectl -n managed get secret xpeks --output jsonpath="{.data.kubeconfig}" | base64 -d | tee kubeconfig
+# To get credentials for GKE use cloud API below
+kubectl -n managed get secret xpgke --output jsonpath="{.data.kubeconfig}" | base64 -d | tee kubeconfig
+export KUBECONFIG=$PWD/kubeconfig
+
+# Using Cloud APIs
+gcloud container clusters get-credentials uxpgke --zone us-west2 --project <project name>
+az aks get-credentials --resource-group rg-uxpaks --name uxpaks --admin
+aws eks --region us-west-1 update-kubeconfig --name uxpeks
 ```
 
 ### Cleanup & Uninstall
@@ -200,7 +244,54 @@ kubectl delete secret -n upbound-system gcp-account-creds
 kubectl delete provider.pkg provider-aws
 kubectl delete provider.pkg provider-azure
 kubectl delete provider.pkg provider-gcp
-``` 
+```
+
+## Troubleshooting
+
+### Azure
+
+```console
+k get ResourceGroup.azure.crossplane.io,\
+VirtualNetwork.network.azure.crossplane.io,\
+Subnet.network.azure.crossplane.io,\
+AKSCluster.compute.azure.crossplane.io,\
+ProviderConfig.helm.crossplane.io,\
+Release.helm.crossplane.io,\
+ProviderConfig.kubernetes.crossplane.io,\
+Object.kubernetes.crossplane.io
+```
+
+### AWS
+
+```console
+k get Role.iam.aws.crossplane.io,\
+RolePolicyAttachment.iam.aws.crossplane.io,\
+VPC.ec2.aws.crossplane.io,\
+SecurityGroup.ec2.aws.crossplane.io,\
+Subnet.ec2.aws.crossplane.io,\
+InternetGateway.ec2.aws.crossplane.io,\
+RouteTable.ec2.aws.crossplane.io,\
+Cluster.eks.aws.crossplane.io,\
+NodeGroup.eks.aws.crossplane.io,\
+FargateProfile.eks.aws.crossplane.io,\
+ProviderConfig.helm.crossplane.io,\
+Release.helm.crossplane.io,\
+ProviderConfig.kubernetes.crossplane.io,\
+Object.kubernetes.crossplane.io
+```
+
+### GCP
+
+```console
+k get Network.compute.gcp.crossplane.io,\
+Subnetwork.compute.gcp.crossplane.io,\
+Cluster.container.gcp.crossplane.io,\
+NodePool.container.gcp.crossplane.io,\
+ProviderConfig.helm.crossplane.io,\
+Release.helm.crossplane.io,\
+ProviderConfig.kubernetes.crossplane.io,\
+Object.kubernetes.crossplane.io
+```
 
 ## APIs in this Configuration
 

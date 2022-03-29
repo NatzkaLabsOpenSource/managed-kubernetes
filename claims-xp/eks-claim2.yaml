@@ -1,18 +1,22 @@
 apiVersion: compositions.io/v1alpha1
 kind: ManagedCluster
 metadata:
-  name: uxpaks1
+  name: xpeks2
   namespace: managed
   labels:
     owner: andrzej
 spec:
-  id: uxpaks1
+  id: xpeks2
   compositionSelector:
     matchLabels:
-      cluster: aks
+      cluster: eks
   parameters:
-    version: "1.21.2"
+    version: "1.21" 
+    fargateNamespace: default
     # nodeSize: small ### Supported values: small, medium, large
-    # nodeCount: 3
+    # nodeCount: 3 
+    # region: euc
+    # region: apne2 
+    region: cac
   writeConnectionSecretToRef:
-    name: uxpaks1
+    name: xpeks2

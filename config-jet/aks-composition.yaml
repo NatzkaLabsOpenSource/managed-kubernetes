@@ -18,12 +18,13 @@ spec:
   resources:
   - name: resourcegroup
     base:
-      apiVersion: azure.crossplane.io/v1alpha3
+      apiVersion: azure.jet.crossplane.io/v1alpha2
       kind: ResourceGroup
       spec:
-        location: westus2
+        forProvider:
+          location: westus2
         providerConfigRef:
-          name: azure-provider
+          name: azure-jet-provider
     patches:
     - type: PatchSet
       patchSetName: metadata
@@ -38,18 +39,17 @@ spec:
       toFieldPath: metadata.labels.resourcegroup
   - name: vnet  
     base:
-      apiVersion: network.azure.crossplane.io/v1alpha3
+      apiVersion: network.azure.jet.crossplane.io/v1alpha2
       kind: VirtualNetwork 
       spec:
-        location: westus2
-        resourceGroupNameSelector: 
-          matchControllerRef: true
-        properties:
+        forProvider:
+          location: westus2
+          resourceGroupNameSelector: 
+            matchControllerRef: true
           addressSpace:
-            addressPrefixes:
-            - 10.244.32.0/19        
+          - 10.244.32.0/19        
         providerConfigRef:
-          name: azure-provider
+          name: azure-jet-provider
     patches:
     - type: PatchSet
       patchSetName: metadata
@@ -61,18 +61,19 @@ spec:
           fmt: "vnet-%s"
   - name: subnet 
     base:
-      apiVersion: network.azure.crossplane.io/v1alpha3
+      apiVersion: network.azure.jet.crossplane.io/v1alpha2
       kind: Subnet 
       spec:
-        location: westus2
-        resourceGroupNameSelector: 
-          matchControllerRef: true
-        virtualNetworkNameSelector:
-          matchControllerRef: true 
-        properties:
-          addressPrefix: 10.244.32.0/22
+        forProvider:
+          location: westus2
+          resourceGroupNameSelector: 
+            matchControllerRef: true
+          virtualNetworkNameSelector:
+            matchControllerRef: true 
+          addressPrefixes: 
+          - 10.244.32.0/22
         providerConfigRef:
-          name: azure-provider
+          name: azure-jet-provider
     patches:
     - type: PatchSet
       patchSetName: metadata
@@ -84,20 +85,26 @@ spec:
           fmt: "snet-%s"
   - name: aks
     base:
-      apiVersion: compute.azure.crossplane.io/v1alpha3
-      kind: AKSCluster
+      apiVersion: containerservice.azure.jet.crossplane.io/v1alpha2
+      kind: KubernetesCluster
       spec:
-        location: westus2 
-        dnsNamePrefix: uxpaks
-        disableRBAC: false
-        resourceGroupNameSelector: 
-          matchControllerRef: true
-        vnetSubnetIDSelector:
-          matchControllerRef: true  
+        forProvider: # change patches 
+          location: westus2 
+          dnsPrefix: uxpaks
+          defaultNodePool: # check patches and matchcontroller
+          - name: default
+            nodeCount: 1
+            vmSize: "Standard_D2_v2"
+          identity: # check identity
+          - type: "SystemAssigned"        
+          resourceGroupNameSelector: 
+            matchControllerRef: true
+          vnetSubnetIDSelector:
+            matchControllerRef: true  
         writeConnectionSecretToRef:
           namespace: upbound-system 
         providerConfigRef:
-          name: azure-provider
+          name: azure-jet-provider
     patches:
     - type: PatchSet
       patchSetName: metadata
@@ -144,68 +151,19 @@ spec:
     - type: MatchString
       fieldPath: "status.state"
       matchString: "Succeeded"
-  - name: helm
+  - name: aks-nodes
     base:
-        apiVersion: helm.crossplane.io/v1beta1
-        kind: ProviderConfig
-        spec:
-          credentials:
-            source: Secret
-            secretRef:
-              key: kubeconfig
-    patches:
-      - fromFieldPath: spec.id
-        toFieldPath: metadata.name
-      - fromFieldPath: spec.writeConnectionSecretToRef.namespace
-        toFieldPath: spec.credentials.secretRef.namespace
-      - fromFieldPath: spec.id
-        toFieldPath: spec.credentials.secretRef.name
-        transforms:
-          - type: string
-            string:
-              fmt: "%s-akscluster"
-    readinessChecks:
-      - type: None
-  - name: helm-uxp
-    base:
-        apiVersion: helm.crossplane.io/v1beta1
-        kind: Release
-        spec:
-          rollbackLimit: 3
-          forProvider:
-            namespace: upbound-system
-            chart:
-              name: universal-crossplane
-              repository: https://charts.upbound.io/stable
-              version: "1.6.1-up.1"
-            values: {}
-    patches:
-    - fromFieldPath: spec.id
-      toFieldPath: metadata.name
-      transforms:
-        - type: string
-          string:
-            fmt: "%s-uxp"
-    - fromFieldPath: spec.id
-      toFieldPath: spec.providerConfigRef.name
-  - name: crossplane
-    base:
-      apiVersion: helm.crossplane.io/v1beta1
-      kind: Release
+      apiVersion: containerservice.azure.jet.crossplane.io/v1alpha2
+      kind: KubernetesClusterNodePool
       spec:
-        rollbackLimit: 3
         forProvider:
-          namespace: crossplane-system
-          chart:
-            name: crossplane
-            repository: https://charts.crossplane.io/stable
-            version: "1.5.0"
+        location: westus2
+        resourceGroupNameSelector: 
+          matchControllerRef: true
+        properties:
+          addressSpace:
+            addressPrefixes:
+            - 10.244.32.0/19        
+        providerConfigRef:
+          name: azure-jet-provider
     patches:
-    - fromFieldPath: spec.id
-      toFieldPath: metadata.name
-      transforms:
-        - type: string
-          string:
-            fmt: "%s-crossplane"
-    - fromFieldPath: spec.id
-      toFieldPath: spec.providerConfigRef.name

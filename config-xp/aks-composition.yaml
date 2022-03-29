@@ -10,23 +10,52 @@ spec:
   compositeTypeRef:
     apiVersion: compositions.io/v1alpha1
     kind: XManagedCluster
-  writeConnectionSecretsToNamespace: upbound-system  
+  writeConnectionSecretsToNamespace: crossplane-system 
   patchSets:
   - name: metadata
     patches:
     - fromFieldPath: metadata.labels
+  - name: region
+    patches:
+    - fromFieldPath: spec.parameters.region
+      toFieldPath: spec.location
+      transforms:
+      - type: map
+        map:
+          use1: eastus
+          use2: eastus2
+          usw1: westus
+          usw2: westus2
+          cac: canadacentral
+          sae: brazilsouth
+          afs: southafricanorth
+          euc: germanywestcentral
+          euw1: northeurope
+          euw2: uksouth
+          euw3: francecentral
+          eus: switzerlandnorth
+          eun: swedencentral
+          ape: eastasia
+          aps1: westindia
+          apne1: japaneast
+          apne2: koreacentral
+          apne3: japanwest
+          apse1: southeastasia
+          apse2: australiaeast
+          apse3: australiacentral 
   resources:
   - name: resourcegroup
     base:
       apiVersion: azure.crossplane.io/v1alpha3
       kind: ResourceGroup
       spec:
-        location: westus2
         providerConfigRef:
           name: azure-provider
     patches:
     - type: PatchSet
       patchSetName: metadata
+    - type: PatchSet
+      patchSetName: region
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
       transforms:
@@ -41,7 +70,6 @@ spec:
       apiVersion: network.azure.crossplane.io/v1alpha3
       kind: VirtualNetwork 
       spec:
-        location: westus2
         resourceGroupNameSelector: 
           matchControllerRef: true
         properties:
@@ -53,6 +81,8 @@ spec:
     patches:
     - type: PatchSet
       patchSetName: metadata
+    - type: PatchSet
+      patchSetName: region
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
       transforms:
@@ -64,7 +94,6 @@ spec:
       apiVersion: network.azure.crossplane.io/v1alpha3
       kind: Subnet 
       spec:
-        location: westus2
         resourceGroupNameSelector: 
           matchControllerRef: true
         virtualNetworkNameSelector:
@@ -76,6 +105,8 @@ spec:
     patches:
     - type: PatchSet
       patchSetName: metadata
+    - type: PatchSet
+      patchSetName: region  
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
       transforms:
@@ -87,7 +118,6 @@ spec:
       apiVersion: compute.azure.crossplane.io/v1alpha3
       kind: AKSCluster
       spec:
-        location: westus2 
         dnsNamePrefix: uxpaks
         disableRBAC: false
         resourceGroupNameSelector: 
@@ -95,12 +125,14 @@ spec:
         vnetSubnetIDSelector:
           matchControllerRef: true  
         writeConnectionSecretToRef:
-          namespace: upbound-system 
+          namespace: crossplane-system 
         providerConfigRef:
           name: azure-provider
     patches:
     - type: PatchSet
       patchSetName: metadata
+    - type: PatchSet
+      patchSetName: region
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
     - type: ToCompositeFieldPath
@@ -118,7 +150,7 @@ spec:
           small: Standard_D2s_v3
           medium: Standard_D4s_v3
           large: Standard_D8s_v3
-    - fromFieldPath: metadata.uid
+    - fromFieldPath: spec.id
       toFieldPath: spec.writeConnectionSecretToRef.name
       transforms:
       - type: string
@@ -166,40 +198,18 @@ spec:
               fmt: "%s-akscluster"
     readinessChecks:
       - type: None
-  - name: helm-uxp
+  - name: helm-crossplane
     base:
         apiVersion: helm.crossplane.io/v1beta1
         kind: Release
         spec:
           rollbackLimit: 3
           forProvider:
-            namespace: upbound-system
+            namespace: crossplane-system
             chart:
-              name: universal-crossplane
-              repository: https://charts.upbound.io/stable
-              version: "1.6.1-up.1"
-            values: {}
-    patches:
-    - fromFieldPath: spec.id
-      toFieldPath: metadata.name
-      transforms:
-        - type: string
-          string:
-            fmt: "%s-uxp"
-    - fromFieldPath: spec.id
-      toFieldPath: spec.providerConfigRef.name
-  - name: crossplane
-    base:
-      apiVersion: helm.crossplane.io/v1beta1
-      kind: Release
-      spec:
-        rollbackLimit: 3
-        forProvider:
-          namespace: crossplane-system
-          chart:
-            name: crossplane
-            repository: https://charts.crossplane.io/stable
-            version: "1.5.0"
+              name: crossplane
+              repository: https://charts.crossplane.io/stable
+              version: "1.6.3"
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
@@ -207,5 +217,47 @@ spec:
         - type: string
           string:
             fmt: "%s-crossplane"
+    - fromFieldPath: spec.id
+      toFieldPath: spec.providerConfigRef.name
+  - name: kubernetes
+    base:
+      apiVersion: kubernetes.crossplane.io/v1alpha1
+      kind: ProviderConfig
+      spec:
+        credentials:
+          source: Secret
+          secretRef:
+            key: kubeconfig
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+      toFieldPath: spec.credentials.secretRef.namespace
+    - fromFieldPath: spec.id
+      toFieldPath: spec.credentials.secretRef.name
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-akscluster"
+    readinessChecks:
+      - type: None
+  - name: k8s-ns-prod
+    base:
+      apiVersion: kubernetes.crossplane.io/v1alpha1
+      kind: Object
+      spec:
+        forProvider:
+          manifest:
+            apiVersion: v1
+            kind: Namespace
+            metadata:
+              name: production
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-ns-prod"
     - fromFieldPath: spec.id
       toFieldPath: spec.providerConfigRef.name
