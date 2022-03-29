@@ -46,14 +46,16 @@ Three Standard AZs for most of the regions with postfix a,b,c:
 ```
 us-east-2: us-east-2a, us-east-2b, us-east-2c   
 ```
-Exceptions: (Important for EKS compositions: Subnet and Route Tables  )
+Exception without influence on XR
 
-use1: us-east-1       # a-f, 6 zones
-usw2: us-west-2       # a-d, 4 zones
-apne2: ap-northeast-2 # a-d, 4 zones
+* use1: us-east-1       # a-f, 6 zones
+* usw2: us-west-2       # a-d, 4 zones
+* apne2: ap-northeast-2 # a-d, 4 zones
 
-usw1: us-west-1       # ac,  no B zone, in XR Zone B mapped to A
-cac: ca-central-1     # abd, no C Zone, in XR Zone C mapped to B (Fargate profile not supported in zone D)
-apne1: ap-northeast-1 # acd, no B zone, in XR Zone B mapped to D
+Exceptions important for XR resources: Subnet and Route Tables
+
+* usw1: us-west-1       # ac,  no B zone, in XR Zone B mapped to A
+* cac: ca-central-1     # abd, no C Zone, in XR Zone C mapped to B (Fargate profile not supported in zone D)
+* apne1: ap-northeast-1 # acd, no B zone, in XR Zone B mapped to D
 
 
