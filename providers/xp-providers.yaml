@@ -19,17 +19,3 @@ metadata:
   name: gcp-provider
 spec:
   package: crossplane/provider-gcp:v0.21.0
----
-apiVersion: pkg.crossplane.io/v1
-kind: Provider
-metadata:
-  name: helm-provider
-spec:
-  package: crossplane/provider-helm:v0.10.0 
----
-apiVersion: pkg.crossplane.io/v1
-kind: Provider
-metadata:
-  name: kubernetes-provider
-spec:
-  package: crossplane/provider-kubernetes:v0.3.0

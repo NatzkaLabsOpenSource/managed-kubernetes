@@ -1,22 +1,22 @@
 apiVersion: compositions.io/v1alpha1
 kind: ManagedCluster
 metadata:
-  name: xpaks
+  name: xpjetaks
   namespace: managed
   labels:
     owner: andrzej
 spec:
-  id: xpaks
+  id: xpjetaks
   compositionSelector:
     matchLabels:
       cluster: aks
-      provider: classic      
+      provider: jet      
   parameters:
     version: "1.21.7"
     # nodeSize: small
     # nodeCount: 3
     # region:  use1
     # region: eus
-    region: eus
+    region: euc
   writeConnectionSecretToRef:
-    name: xpaks
+    name: xpjetaks

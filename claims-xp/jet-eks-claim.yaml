@@ -1,22 +1,23 @@
 apiVersion: compositions.io/v1alpha1
 kind: ManagedCluster
 metadata:
-  name: xpeks2
+  name: xpjeteks
   namespace: managed
   labels:
     owner: andrzej
 spec:
-  id: xpeks2
+  id: xpjeteks
   compositionSelector:
     matchLabels:
       cluster: eks
+      provider: jet
   parameters:
     version: "1.21" 
     fargateNamespace: default
     # nodeSize: small ### Supported values: small, medium, large
     # nodeCount: 3 
-    # region: euc
-    # region: apne2 
-    region: cac
+    # region:  apne2
+    # region: usw1
+    region: eun
   writeConnectionSecretToRef:
-    name: xpeks2
+    name: xpjeteks

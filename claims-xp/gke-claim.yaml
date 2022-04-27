@@ -10,11 +10,13 @@ spec:
   compositionSelector:
     matchLabels:
       cluster: gke
+      provider: classic
   parameters:
     version: "latest"
+    # version: "1.21.6"
     # nodeSize: small ### Supported values: small, medium, large
     # nodeCount: 3
-    # region:  use1, eus
-    region: euc
+    # region:  use1, euc
+    region: eus
   writeConnectionSecretToRef:
     name: xpgke

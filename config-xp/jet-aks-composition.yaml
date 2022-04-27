@@ -1,10 +1,10 @@
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
-  name: aks
+  name: jet-aks
   labels:
     crossplane.io/xrd: xmanagedclusters.compositions.io
-    provider: classic
+    provider: jet
     cluster: aks
 spec:
   compositeTypeRef:
@@ -18,7 +18,7 @@ spec:
   - name: region
     patches:
     - fromFieldPath: spec.parameters.region
-      toFieldPath: spec.location
+      toFieldPath: spec.forProvider.location
       transforms:
       - type: map
         map:
@@ -46,11 +46,11 @@ spec:
   resources:
   - name: resourcegroup
     base:
-      apiVersion: azure.crossplane.io/v1alpha3
+      apiVersion: azure.jet.crossplane.io/v1alpha2
       kind: ResourceGroup
       spec:
         providerConfigRef:
-          name: azure-provider
+          name: azure-jet-provider
     patches:
     - type: PatchSet
       patchSetName: metadata
@@ -67,17 +67,16 @@ spec:
       toFieldPath: metadata.labels.resourcegroup
   - name: vnet  
     base:
-      apiVersion: network.azure.crossplane.io/v1alpha3
+      apiVersion: network.azure.jet.crossplane.io/v1alpha2
       kind: VirtualNetwork 
       spec:
-        resourceGroupNameSelector: 
-          matchControllerRef: true
-        properties:
+        forProvider:
+          resourceGroupNameSelector: 
+            matchControllerRef: true
           addressSpace:
-            addressPrefixes:
-            - 10.244.32.0/19        
+          - 10.244.32.0/19        
         providerConfigRef:
-          name: azure-provider
+          name: azure-jet-provider
     patches:
     - type: PatchSet
       patchSetName: metadata
@@ -91,43 +90,50 @@ spec:
           fmt: "vnet-%s"
   - name: subnet 
     base:
-      apiVersion: network.azure.crossplane.io/v1alpha3
+      apiVersion: network.azure.jet.crossplane.io/v1alpha2
       kind: Subnet 
       spec:
-        resourceGroupNameSelector: 
-          matchControllerRef: true
-        virtualNetworkNameSelector:
-          matchControllerRef: true 
-        properties:
-          addressPrefix: 10.244.32.0/22
+        forProvider:
+          resourceGroupNameSelector: 
+            matchControllerRef: true
+          virtualNetworkNameSelector:
+            matchControllerRef: true 
+          addressPrefixes: 
+          - "10.244.32.0/22"
         providerConfigRef:
-          name: azure-provider
+          name: azure-jet-provider
     patches:
     - type: PatchSet
       patchSetName: metadata
-    # - type: PatchSet
-    #   patchSetName: region  
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
       transforms:
       - type: string
         string:
           fmt: "snet-%s"
-  - name: aks
+  - name: akscluster
     base:
-      apiVersion: compute.azure.crossplane.io/v1alpha3
-      kind: AKSCluster
+      apiVersion: containerservice.azure.jet.crossplane.io/v1alpha2
+      kind: KubernetesCluster
       spec:
-        dnsNamePrefix: xp
-        disableRBAC: false
-        resourceGroupNameSelector: 
-          matchControllerRef: true
-        vnetSubnetIDSelector:
-          matchControllerRef: true  
+        forProvider:
+          dnsPrefix: xpjet
+          roleBasedAccessControl:
+          - enabled: true
+          resourceGroupNameSelector: 
+            matchControllerRef: true
+          defaultNodePool:
+          - name: default
+            nodeCount: 1
+            vmSize: Standard_D2s_v3 
+            vnetSubnetIDSelector:
+              matchControllerRef: true
+          identity:
+          - type: "SystemAssigned"     
         writeConnectionSecretToRef:
           namespace: crossplane-system 
         providerConfigRef:
-          name: azure-provider
+          name: azure-jet-provider
     patches:
     - type: PatchSet
       patchSetName: metadata
@@ -135,34 +141,33 @@ spec:
       patchSetName: region
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
-    - type: ToCompositeFieldPath
-      fromFieldPath: metadata.name
-      toFieldPath: status.clusterName       
-    - fromFieldPath: spec.parameters.version
-      toFieldPath: spec.version
-    - fromFieldPath: spec.parameters.nodeCount
-      toFieldPath: spec.nodeCount
-    - fromFieldPath: spec.parameters.nodeSize
-      toFieldPath: spec.nodeVMSize
-      transforms:
-      - type: map
-        map:
-          small: Standard_D2s_v3
-          medium: Standard_D4s_v3
-          large: Standard_D8s_v3
     - fromFieldPath: spec.id
       toFieldPath: spec.writeConnectionSecretToRef.name
       transforms:
       - type: string
         string:
           fmt: "%s-akscluster"
+    - fromFieldPath: spec.parameters.version
+      toFieldPath: spec.forProvider.kubernetesVersion
+    # - fromFieldPath: spec.id
+    #   toFieldPath: spec.forProvider.defaultNodePool[0].name      
+    # - fromFieldPath: spec.parameters.nodeCount
+    #   toFieldPath: spec.forProvider.defaultNodePool[0].nodeCount
+    # - fromFieldPath: spec.parameters.nodeSize
+    #   toFieldPath: spec.forProvider.defaultNodePool[0].vmSize
+    #   transforms:
+    #   - type: map
+    #     map:
+    #       small: Standard_D2s_v3
+    #       medium: Standard_D4s_v3
+    #       large: Standard_D8s_v3
     - fromFieldPath: spec.writeConnectionSecretToRef.namespace
     - type: ToCompositeFieldPath
-      fromFieldPath: status.state
-      toFieldPath: status.controlPlaneStatus
+      fromFieldPath: metadata.name
+      toFieldPath: status.clusterName
     - type: ToCompositeFieldPath
-      fromFieldPath: status.state
-      toFieldPath: status.nodePoolStatus
+      fromFieldPath: status.conditions[0].status
+      toFieldPath: status.controlPlaneStatus
     - type: ToCompositeFieldPath
       fromFieldPath: metadata.name
       toFieldPath: status.fargateProfileStatus
@@ -174,8 +179,43 @@ spec:
     - fromConnectionSecretKey: kubeconfig
     readinessChecks:
     - type: MatchString
-      fieldPath: "status.state"
-      matchString: "Succeeded"
+      fieldPath: status.conditions[0].status
+      matchString: "True"
+  - name: aksnode
+    base:
+      apiVersion: containerservice.azure.jet.crossplane.io/v1alpha2
+      kind: KubernetesClusterNodePool
+      spec:
+        forProvider:
+          kubernetesClusterIdSelector:
+            matchControllerRef: true
+          vnetSubnetIDSelector:
+            matchControllerRef: true 
+        providerConfigRef:
+          name: azure-jet-provider
+    patches:
+    - type: PatchSet
+      patchSetName: metadata
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+    - fromFieldPath: spec.parameters.nodeCount
+      toFieldPath: spec.forProvider.nodeCount
+    - fromFieldPath: spec.parameters.nodeSize
+      toFieldPath: spec.forProvider.vmSize
+      transforms:
+      - type: map
+        map:
+          small: Standard_D2s_v3
+          medium: Standard_D4s_v3
+          large: Standard_D8s_v3
+    - type: ToCompositeFieldPath
+      fromFieldPath: status.conditions[0].status
+      toFieldPath: status.nodePoolStatus
+    readinessChecks:
+    - type: MatchString
+      fieldPath: status.conditions[0].status
+      matchString: "True"
+
   - name: helm
     base:
         apiVersion: helm.crossplane.io/v1beta1
@@ -209,7 +249,7 @@ spec:
             chart:
               name: crossplane
               repository: https://charts.crossplane.io/stable
-              version: "1.6.3"
+              version: "1.7.0"
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name

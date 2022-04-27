@@ -1,21 +1,12 @@
 ---
-apiVersion: v1
-kind: Secret
-metadata:
-  name: azure-jet-account-creds
-  namespace: ${PROVIDER_SECRET_NAMESPACE}
-type: Opaque
-data:
-  credentials: ${BASE64ENCODED_AZURE_ACCOUNT_CREDS}
----
-apiVersion: azure.crossplane.io/v1beta1
+apiVersion: azure.jet.crossplane.io/v1alpha1
 kind: ProviderConfig
 metadata:
   name: azure-jet-provider
 spec:
   credentials:
     source: Secret
-    secretRef:
+    secretRef: 
       namespace: ${PROVIDER_SECRET_NAMESPACE}
-      name: azure-jet-account-creds
+      name: azure-account-creds
       key: credentials
