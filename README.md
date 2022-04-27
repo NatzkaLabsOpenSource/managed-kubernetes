@@ -485,27 +485,28 @@ Object.kubernetes.crossplane.io
 
 * `config-xp/`, `config/` - Composite Resource Definition (XRD) with satisfying Compositions
   * [xmanagedcluster XRD](config-xp/definition.yaml)
-  * [eks composition](config-xp/eks-composition.yaml) includes :
+  * [eks composition](config-xp/eks-composition.yaml),[eks jet composition](config-xp/jet-eks-composition.yaml) includes:
     * `Role`
     * `RolePolicyAttachment`
     * `VPC`
-    * `SecurityGroup`
+    * `SecurityGroup`, `SecurityGroupRule`
     * `Subnet`
     * `InternetGateway`
-    * `RouteTable`
+    * `RouteTable`, `Route`, `RouteTableAssociation`
     * `Cluster`
     * `NodeGroup`
     * `FargateProfile`
     * `Relase`
     * `Object`
-  * [aks composition](config-xp/aks-composition.yaml) includes:
+  * [aks composition](config-xp/aks-composition.yaml),[aks jet composition](config-xp/jet-aks-composition.yaml) includes:
     * `ResourceGroup`
     * `VirtualNetwork`
     * `Subnet`
-    * `AKSCluster`
+    * `AKSCluster` or `KubernetesCluster`
+    * `None` or `KubernetesClusterNodePool`
     * `Relase`
     * `Object`   
-  * [gke composition](config-xp/gke-composition.yaml) includes:
+  * [gke composition](config-xp/gke-composition.yaml),[gke jet composition](config-xp/jet-gke-composition.yaml) includes:
     * `Network`
     * `Subnetwork`
     * `Cluster`
@@ -513,14 +514,21 @@ Object.kubernetes.crossplane.io
     * `Relase`
     * `Object`    
 * `providers/` - Provider Installation and Configuration
-  * [Setup](providers/xp-providers.yaml) 
+  * [Setup](providers/xp-providers.yaml)
   * [AWS Provider Config](providers/aws-provider.yaml)    
   * [Azure Provider Config](providers/azure-provider.yaml)    
   * [GCP Provider Config](providers/gcp-provider.yaml)
+  * [Setup Jet](providers/jet-providers.yaml), [AWS Jet Preview](providers/jet-aws-preview-provider.yaml) 
+  * [AWS Jet Provider Config](providers/jet-aws-provider.yaml)    
+  * [Azure Jet Provider Config](providers/jet-azure-provider.yaml)    
+  * [GCP Jet Provider Config](providers/jet-gcp-provider.yaml)
 * `claim-xp/`, `claims/` - Examples to consume defined by Ops XRDs
   * [EKS Claim](claims-xp/eks-claim.yaml)    
   * [AKS Claim](claims-xp/aks-claim.yaml)    
   * [GKE Claim](claims-xp/gke-claim.yaml)     
+  * [EKS Jet Claim](claims-xp/jet-eks-claim.yaml)    
+  * [AKS Jet Claim](claims-xp/jet-aks-claim.yaml)    
+  * [GKE Jet Claim](claims-xp/jet-gke-claim.yaml)     
 
 ## Contributing workflow
 

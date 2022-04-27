@@ -1,10 +1,10 @@
----
-apiVersion: pkg.crossplane.io/v1
-kind: Provider
-metadata:
-  name: aws-jet-provider
-spec:
-  package: crossplane/provider-jet-aws:v0.4.2
+# ---
+# apiVersion: pkg.crossplane.io/v1
+# kind: Provider
+# metadata:
+#   name: aws-jet-provider
+# spec:
+#   package: crossplane/provider-jet-aws:v0.4.2
 ---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
