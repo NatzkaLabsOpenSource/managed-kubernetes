@@ -1,13 +1,4 @@
 ---
-apiVersion: v1
-kind: Secret
-metadata:
-  name: gcp-account-creds
-  namespace: ${PROVIDER_SECRET_NAMESPACE}
-type: Opaque
-data:
-  credentials: ${BASE64ENCODED_GCP_PROVIDER_CREDS}
----
 apiVersion: gcp.crossplane.io/v1beta1
 kind: ProviderConfig
 metadata:

@@ -163,6 +163,9 @@ spec:
               fargateProfileStatus:
                 description: The Fargate Profile status
                 type: string
+              gatewayid:
+                description: dummy to get InternetGatewayID and patch it to RouteTable
+                type: string                
     additionalPrinterColumns:
     - name: clusterName
       type: string

@@ -1,10 +1,10 @@
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
-  name: eks
+  name: jet-eks
   labels:
     crossplane.io/xrd: xmanagedclusters.compositions.io
-    provider: classic
+    provider: jet
     cluster: eks
 spec:
   compositeTypeRef:
@@ -205,10 +205,10 @@ spec:
           apse1: ap-southeast-1c
           apse2: ap-southeast-2c
           apse3: ap-southeast-3c
-  - name: route-zones
+  - name: route-zone-1
     patches:
     - fromFieldPath: spec.parameters.region
-      toFieldPath: spec.forProvider.associations[0].subnetIdSelector.matchLabels.zone
+      toFieldPath: spec.forProvider.subnetIdSelector.matchLabels.zone
       transforms:
       - type: map
         map:
@@ -233,8 +233,10 @@ spec:
           apse1: ap-southeast-1a
           apse2: ap-southeast-2a
           apse3: ap-southeast-3a
+  - name: route-zone-2
+    patches:
     - fromFieldPath: spec.parameters.region
-      toFieldPath: spec.forProvider.associations[1].subnetIdSelector.matchLabels.zone
+      toFieldPath: spec.forProvider.subnetIdSelector.matchLabels.zone
       transforms:
       - type: map
         map:
@@ -259,8 +261,10 @@ spec:
           apse1: ap-southeast-1b
           apse2: ap-southeast-2b
           apse3: ap-southeast-3b
+  - name: route-zone-3
+    patches:
     - fromFieldPath: spec.parameters.region
-      toFieldPath: spec.forProvider.associations[2].subnetIdSelector.matchLabels.zone
+      toFieldPath: spec.forProvider.subnetIdSelector.matchLabels.zone
       transforms:
       - type: map
         map:
@@ -290,11 +294,11 @@ spec:
   # IAM Roles
   - name: iamrole-controlplane
     base:
-      apiVersion: iam.aws.crossplane.io/v1beta1
+      apiVersion: iam.aws.jet.crossplane.io/v1alpha2
       kind: Role
       spec:
         forProvider:
-          assumeRolePolicyDocument: |
+          assumeRolePolicy: |
             {
               "Version": "2012-10-17",
               "Statement": [
@@ -312,7 +316,7 @@ spec:
               ]
             }
         providerConfigRef:
-          name: aws-provider
+          name: aws-jet-provider
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
@@ -328,11 +332,11 @@ spec:
           fmt: "%s-controlplane"  
   - name: iamrole-nodegroup
     base:
-      apiVersion: iam.aws.crossplane.io/v1beta1
+      apiVersion: iam.aws.jet.crossplane.io/v1alpha2
       kind: Role
       spec:
         forProvider:
-          assumeRolePolicyDocument: |
+          assumeRolePolicy: |
             {
               "Version": "2012-10-17",
               "Statement": [
@@ -350,7 +354,7 @@ spec:
               ]
             }                
         providerConfigRef:
-          name: aws-provider
+          name: aws-jet-provider
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
@@ -366,11 +370,11 @@ spec:
           fmt: "%s-nodegroup"
   - name: iamrole-fargateprofile
     base:
-      apiVersion: iam.aws.crossplane.io/v1beta1
+      apiVersion: iam.aws.jet.crossplane.io/v1alpha2
       kind: Role
       spec:
         forProvider:
-          assumeRolePolicyDocument: |
+          assumeRolePolicy: |
             {
               "Version": "2012-10-17",
               "Statement": [
@@ -388,7 +392,7 @@ spec:
               ]
             }         
         providerConfigRef:
-          name: aws-provider
+          name: aws-jet-provider
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
@@ -402,19 +406,17 @@ spec:
       - type: string
         string:
           fmt: "%s-fargateprofile"
-
-  # IAM ROLE POLICY ATTCHMENTS
   - name: iamrolepolicy-cp-001
     base:
-      apiVersion: iam.aws.crossplane.io/v1beta1
+      apiVersion: iam.aws.jet.crossplane.io/v1alpha2
       kind: RolePolicyAttachment
       spec:
         forProvider:
           policyArn: arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
-          roleNameSelector:
+          roleSelector:
             matchControllerRef: true
         providerConfigRef:
-          name: aws-provider
+          name: aws-jet-provider
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
@@ -423,22 +425,22 @@ spec:
         string:
           fmt: "%s-cp-001"
     - fromFieldPath: spec.id
-      toFieldPath: spec.forProvider.roleNameSelector.matchLabels.role
+      toFieldPath: spec.forProvider.roleSelector.matchLabels.role
       transforms:
       - type: string
         string:
           fmt: "%s-controlplane"          
   - name: iamrolepolicy-cp-002 
     base:
-      apiVersion: iam.aws.crossplane.io/v1beta1
+      apiVersion: iam.aws.jet.crossplane.io/v1alpha2
       kind: RolePolicyAttachment
       spec:
         forProvider:
           policyArn: arn:aws:iam::aws:policy/AmazonEKSServicePolicy
-          roleNameSelector:
+          roleSelector:
             matchControllerRef: true
         providerConfigRef:
-          name: aws-provider
+          name: aws-jet-provider
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
@@ -447,22 +449,22 @@ spec:
         string:
           fmt: "%s-cp-002"
     - fromFieldPath: spec.id
-      toFieldPath: spec.forProvider.roleNameSelector.matchLabels.role
+      toFieldPath: spec.forProvider.roleSelector.matchLabels.role
       transforms:
       - type: string
         string:
           fmt: "%s-controlplane"
   - name:  iamrolepolicy-ng-001
     base:
-      apiVersion: iam.aws.crossplane.io/v1beta1
+      apiVersion: iam.aws.jet.crossplane.io/v1alpha2
       kind: RolePolicyAttachment
       spec:
         forProvider:
           policyArn: arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
-          roleNameSelector:
+          roleSelector:
             matchControllerRef: true
         providerConfigRef:
-          name: aws-provider
+          name: aws-jet-provider
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
@@ -471,22 +473,22 @@ spec:
         string:
           fmt: "%s-ng-001"
     - fromFieldPath: spec.id
-      toFieldPath: spec.forProvider.roleNameSelector.matchLabels.role
+      toFieldPath: spec.forProvider.roleSelector.matchLabels.role
       transforms:
       - type: string
         string:
           fmt: "%s-nodegroup"
   - name: iamrolepolicy-ng-002
     base:
-      apiVersion: iam.aws.crossplane.io/v1beta1
+      apiVersion: iam.aws.jet.crossplane.io/v1alpha2
       kind: RolePolicyAttachment
       spec:
         forProvider:
           policyArn: arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
-          roleNameSelector:
+          roleSelector:
             matchControllerRef: true
         providerConfigRef:
-          name: aws-provider
+          name: aws-jet-provider
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
@@ -495,22 +497,22 @@ spec:
         string:
           fmt: "%s-ng-002"
     - fromFieldPath: spec.id
-      toFieldPath: spec.forProvider.roleNameSelector.matchLabels.role
+      toFieldPath: spec.forProvider.roleSelector.matchLabels.role
       transforms:
       - type: string
         string:
           fmt: "%s-nodegroup"
   - name: iamrolepolicy-ng-003
     base:
-      apiVersion: iam.aws.crossplane.io/v1beta1
+      apiVersion: iam.aws.jet.crossplane.io/v1alpha2
       kind: RolePolicyAttachment
       spec:
         forProvider:
           policyArn: arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
-          roleNameSelector:
+          roleSelector:
             matchControllerRef: true
         providerConfigRef:
-          name: aws-provider
+          name: aws-jet-provider
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
@@ -519,22 +521,22 @@ spec:
         string:
           fmt: "%s-ng-003"
     - fromFieldPath: spec.id
-      toFieldPath: spec.forProvider.roleNameSelector.matchLabels.role
+      toFieldPath: spec.forProvider.roleSelector.matchLabels.role
       transforms:
       - type: string
         string:
           fmt: "%s-nodegroup"
   - name:  iamrolepolicy-fp-001
     base:
-      apiVersion: iam.aws.crossplane.io/v1beta1
+      apiVersion: iam.aws.jet.crossplane.io/v1alpha2
       kind: RolePolicyAttachment
       spec:
         forProvider:
           policyArn: arn:aws:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy
-          roleNameSelector:
+          roleSelector:
             matchControllerRef: true
         providerConfigRef:
-          name: aws-provider
+          name: aws-jet-provider
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
@@ -543,73 +545,91 @@ spec:
         string:
           fmt: "%s-fp-001"
     - fromFieldPath: spec.id
-      toFieldPath: spec.forProvider.roleNameSelector.matchLabels.role
+      toFieldPath: spec.forProvider.roleSelector.matchLabels.role
       transforms:
       - type: string
         string:
           fmt: "%s-fargateprofile"      
-
   - name: ec2-vpc
     base:
-      apiVersion: ec2.aws.crossplane.io/v1beta1
+      apiVersion: ec2.aws.jet.crossplane.io/v1alpha2
       kind: VPC
       spec:
         forProvider:
           cidrBlock: 10.0.0.0/16
           tags:
-          - key: Name
-            value: eks-cluster
+            Name: eks-vpc
         providerConfigRef:
-          name: aws-provider
+          name: aws-jet-provider
     patches:
     - type: PatchSet
       patchSetName: region
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
-
   - name: ec2sg-ng
     base:
-      apiVersion: ec2.aws.crossplane.io/v1beta1
+      apiVersion: ec2.aws.jet.crossplane.io/v1alpha2
       kind: SecurityGroup
       spec:
         forProvider:
           description: Cluster communication with worker nodes
-          groupName: ekscluster-sg
-          vpcIdSelector:
+          name: ekscluster-sg
+          vpcidSelector:
             matchControllerRef: true
-          egress:
-          - ipProtocol: "-1"
-            ipRanges:
-            - cidrIp: "0.0.0.0/0"
         providerConfigRef:
-          name: aws-provider
+          name: aws-jet-provider
     patches:
     - type: PatchSet
       patchSetName: region
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
-
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-sg"    
+  - name: ec2sg-rule
+    base:
+      apiVersion: ec2.aws.jet.crossplane.io/v1alpha2
+      kind: SecurityGroupRule
+      spec:
+        forProvider:
+          securityGroupIdSelector:
+            matchControllerRef: true
+          type: egress            
+          protocol: "-1"
+          fromPort: 0
+          toPort: 0
+          cidrBlocks:
+          - "0.0.0.0/0"                 
+        providerConfigRef:
+          name: aws-jet-provider
+    patches:
+    - type: PatchSet
+      patchSetName: region
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-sgrule"     
   - name: ec2snet-pub-a
     base:
-      apiVersion: ec2.aws.crossplane.io/v1beta1
+      apiVersion: ec2.aws.jet.crossplane.io/v1alpha2
       kind: Subnet
       metadata:
         labels:
-          zone: a
           access: public
       spec:
         forProvider:
           cidrBlock: 10.0.0.0/24
-          vpcIdSelector:
+          vpcidSelector:
             matchControllerRef: true
           mapPublicIPOnLaunch: true
           tags:
-          - key: Name
-            value: eks-cluster
-          - key: kubernetes.io/role/elb
-            value: "1"
+            Name: eks-snet
+            "kubernetes.io/role/elb": "1"
         providerConfigRef:
-          name: aws-provider
+          name: aws-jet-provider
     patches:
     - type: PatchSet
       patchSetName: region
@@ -623,25 +643,22 @@ spec:
           fmt: "%s-pub-a"
   - name: ec2snet-pub-b
     base:
-      apiVersion: ec2.aws.crossplane.io/v1beta1
+      apiVersion: ec2.aws.jet.crossplane.io/v1alpha2
       kind: Subnet
       metadata:
         labels:
-          zone: b
           access: public
       spec:
         forProvider:
           cidrBlock: 10.0.1.0/24
-          vpcIdSelector:
+          vpcidSelector:
             matchControllerRef: true
           mapPublicIPOnLaunch: true
           tags:
-          - key: Name
-            value: eks-cluster
-          - key: kubernetes.io/role/elb
-            value: "1" 
+            Name: eks-snet
+            "kubernetes.io/role/elb": "1"            
         providerConfigRef:
-          name: aws-provider
+          name: aws-jet-provider
     patches:
     - type: PatchSet
       patchSetName: region
@@ -655,25 +672,22 @@ spec:
           fmt: "%s-pub-b"
   - name: ec2snet-pub-c
     base:
-      apiVersion: ec2.aws.crossplane.io/v1beta1
+      apiVersion: ec2.aws.jet.crossplane.io/v1alpha2
       kind: Subnet
       metadata:
         labels:
-          zone: c
           access: public
       spec:
         forProvider:
           cidrBlock: 10.0.2.0/24
-          vpcIdSelector:
+          vpcidSelector:
             matchControllerRef: true
           mapPublicIPOnLaunch: true
           tags:
-          - key: Name
-            value: eks-cluster
-          - key: kubernetes.io/role/elb
-            value: "1"          
+            Name: eks-snet
+            "kubernetes.io/role/elb": "1"
         providerConfigRef:
-          name: aws-provider
+          name: aws-jet-provider
     patches:
     - type: PatchSet
       patchSetName: region
@@ -685,26 +699,23 @@ spec:
       - type: string
         string:
           fmt: "%s-pub-c"
-
   - name: ec2snet-prv-a
     base:
-      apiVersion: ec2.aws.crossplane.io/v1beta1
+      apiVersion: ec2.aws.jet.crossplane.io/v1alpha2
       kind: Subnet
       metadata:
         labels:
-          zone: a
           access: private
       spec:
         forProvider:
           cidrBlock: 10.0.100.0/24
-          vpcIdSelector:
+          vpcidSelector:
             matchControllerRef: true
           mapPublicIPOnLaunch: true
           tags:
-          - key: Name
-            value: eks-cluster
+            Name: eks-snet
         providerConfigRef:
-          name: aws-provider
+          name: aws-jet-provider
     patches:
     - type: PatchSet
       patchSetName: region
@@ -718,23 +729,21 @@ spec:
           fmt: "%s-prv-a"      
   - name: ec2snet-prv-b
     base:
-      apiVersion: ec2.aws.crossplane.io/v1beta1
+      apiVersion: ec2.aws.jet.crossplane.io/v1alpha2
       kind: Subnet
       metadata:
         labels:
-          zone: b
           access: private
       spec:
         forProvider:
           cidrBlock: 10.0.101.0/24
-          vpcIdSelector:
+          vpcidSelector:
             matchControllerRef: true
           mapPublicIPOnLaunch: true
           tags:
-          - key: Name
-            value: eks-cluster
+            Name: eks-snet
         providerConfigRef:
-          name: aws-provider
+          name: aws-jet-provider
     patches:
     - type: PatchSet
       patchSetName: region
@@ -748,23 +757,21 @@ spec:
           fmt: "%s-prv-b"        
   - name: ec2snet-prv-c
     base:
-      apiVersion: ec2.aws.crossplane.io/v1beta1
+      apiVersion: ec2.aws.jet.crossplane.io/v1alpha2
       kind: Subnet
       metadata:
         labels:
-          zone: c
           access: private
       spec:
         forProvider:
           cidrBlock: 10.0.102.0/24
-          vpcIdSelector:
+          vpcidSelector:
             matchControllerRef: true
           mapPublicIPOnLaunch: true
           tags:
-          - key: Name
-            value: eks-cluster          
+            Name: eks-snet      
         providerConfigRef:
-          name: aws-provider
+          name: aws-jet-provider
     patches:
     - type: PatchSet
       patchSetName: region
@@ -776,86 +783,164 @@ spec:
       - type: string
         string:
           fmt: "%s-prv-c"  
-
   - name: ec2-ig
     base:
-      apiVersion: ec2.aws.crossplane.io/v1beta1
+      apiVersion: ec2.aws.jet.crossplane.io/v1alpha1
       kind: InternetGateway
       spec:
         forProvider:
-          vpcIdSelector:
+          vpcidSelector:
             matchControllerRef: true
         providerConfigRef:
-          name: aws-provider
+          name: aws-jet-provider
+    patches:
+    - type: PatchSet
+      patchSetName: region
+    - type: ToCompositeFieldPath
+      fromFieldPath: status.atProvider.id
+      toFieldPath: status.gatewayid
+  - name: ec2-rt
+    base:
+      apiVersion: ec2.aws.jet.crossplane.io/v1alpha2
+      kind: RouteTable
+      spec:
+        forProvider:
+          vpcidSelector:
+            matchControllerRef: true
+        providerConfigRef:
+          name: aws-jet-provider
     patches:
     - type: PatchSet
       patchSetName: region
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
-
-  - name: ec2-rt
-    base:
-      apiVersion: ec2.aws.crossplane.io/v1beta1
-      kind: RouteTable
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-rt"
+  - name: ec2-rt-route
+    base: 
+      apiVersion: ec2.aws.jet.crossplane.io/v1alpha2
+      kind: Route
       spec:
         forProvider:
-          vpcIdSelector:
-            matchControllerRef: true
-          routes:
-            - destinationCidrBlock: 0.0.0.0/0
-              gatewayIdSelector:
-                matchControllerRef: true
-          associations:
-            - subnetIdSelector:
-                matchControllerRef: true
-                matchLabels:
-                  zone: a
-                  access: public
-            - subnetIdSelector:
-                matchControllerRef: true
-                matchLabels:
-                  zone: b
-                  access: public
-            - subnetIdSelector:
-                matchControllerRef: true
-                matchLabels:
-                  zone: c
-                  access: public
+          routeTableIdSelector:
+            matchControllerRef: true 
+          destinationCidrBlock: 0.0.0.0/0 
         providerConfigRef:
-          name: aws-provider
+          name: aws-jet-provider          
+    patches:
+    - type: PatchSet
+      patchSetName: region
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-route"
+    - fromFieldPath: status.gatewayid
+      toFieldPath: spec.forProvider.gatewayId
+
+  - name: ec2-rt-assoc-a
+    base:
+      apiVersion: ec2.aws.jet.crossplane.io/v1alpha2
+      kind: RouteTableAssociation
+      spec:
+        forProvider:
+          routeTableIdSelector:
+            matchControllerRef: true
+          subnetIdSelector:
+            matchControllerRef: true
+            matchLabels:
+              access: public
+        providerConfigRef:
+          name: aws-jet-provider
     patches:
     - type: PatchSet
       patchSetName: region
     - type: PatchSet
-      patchSetName: route-zones
+      patchSetName: route-zone-1
     - fromFieldPath: spec.id
-      toFieldPath: metadata.name       
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-rta-a"       
+
+  - name: ec2-rt-assoc-b
+    base:
+      apiVersion: ec2.aws.jet.crossplane.io/v1alpha2
+      kind: RouteTableAssociation
+      spec:
+        forProvider:
+          routeTableIdSelector:
+            matchControllerRef: true
+          subnetIdSelector:
+            matchControllerRef: true
+            matchLabels:
+              access: public
+        providerConfigRef:
+          name: aws-jet-provider
+    patches:
+    - type: PatchSet
+      patchSetName: region
+    - type: PatchSet
+      patchSetName: route-zone-2
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-rta-b"  
+
+  - name: ec2-rt-assoc-c
+    base:
+      apiVersion: ec2.aws.jet.crossplane.io/v1alpha2
+      kind: RouteTableAssociation
+      spec:
+        forProvider:
+          routeTableIdSelector:
+            matchControllerRef: true
+          subnetIdSelector:
+            matchControllerRef: true
+            matchLabels:
+              access: public
+        providerConfigRef:
+          name: aws-jet-provider
+    patches:
+    - type: PatchSet
+      patchSetName: region
+    - type: PatchSet
+      patchSetName: route-zone-3
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-rta-c"  
 
   - name: ekscluster
     base:
-      apiVersion: eks.aws.crossplane.io/v1beta1
+      apiVersion: eks.aws.jet.crossplane.io/v1alpha2
       kind: Cluster
       spec:
         forProvider:
           roleArnSelector:
             matchControllerRef: true
-          resourcesVpcConfig:
-            endpointPrivateAccess: true
+          vpcConfig:
+          - endpointPrivateAccess: true
             endpointPublicAccess: true
             subnetIdSelector:
               matchControllerRef: true
         writeConnectionSecretToRef:
           namespace: crossplane-system
         providerConfigRef:
-          name: aws-provider
+          name: aws-jet-provider
     patches:
     - type: PatchSet
       patchSetName: region
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
-    - type: ToCompositeFieldPath
-      fromFieldPath: metadata.name
-      toFieldPath: status.clusterName   
     - fromFieldPath: spec.id
       toFieldPath: spec.forProvider.roleArnSelector.matchLabels.role
       transforms:
@@ -872,6 +957,9 @@ spec:
             fmt: "%s-ekscluster"
     - fromFieldPath: spec.writeConnectionSecretToRef.namespace         
     - type: ToCompositeFieldPath
+      fromFieldPath: metadata.name
+      toFieldPath: status.clusterName
+    - type: ToCompositeFieldPath
       fromFieldPath: status.atProvider.status
       toFieldPath: status.controlPlaneStatus
     connectionDetails:
@@ -880,58 +968,57 @@ spec:
     - type: MatchString
       fieldPath: status.atProvider.status
       matchString: ACTIVE
-
-  - name: eksnode
-    base:
-      apiVersion: eks.aws.crossplane.io/v1alpha1
-      kind: NodeGroup
-      spec:
-        forProvider:
-          clusterNameSelector:
-            matchControllerRef: true
-          nodeRoleSelector:
-            matchControllerRef: true
-          subnetSelector:
-            matchControllerRef: true
-            matchLabels:
-              access: public
-          scalingConfig:
-            maxSize: 5
-        providerConfigRef:
-          name: aws-provider
-    patches:
-    - type: PatchSet
-      patchSetName: region
-    - fromFieldPath: spec.id
-      toFieldPath: metadata.name
-    - fromFieldPath: spec.parameters.nodeSize
-      toFieldPath: spec.forProvider.instanceTypes[0]
-      transforms:
-        - type: map
-          map:
-            small: t3.small
-            medium: t3.medium
-            large: t3.large
-    - fromFieldPath: spec.parameters.nodeCount
-      toFieldPath: spec.forProvider.scalingConfig.minSize
-    - fromFieldPath: spec.parameters.minNodeCount
-      toFieldPath: spec.forProvider.scalingConfig.desiredSize
-    - fromFieldPath: spec.id
-      toFieldPath: spec.forProvider.nodeRoleSelector.matchLabels.role
-      transforms:
-        - type: string
-          string:
-            fmt: "%s-nodegroup"      
-    - type: ToCompositeFieldPath
-      fromFieldPath: status.atProvider.status
-      toFieldPath: status.nodePoolStatus
-    readinessChecks:
-    - type: MatchString
-      fieldPath: status.atProvider.status
-      matchString: ACTIVE
+  # - name: eksnode
+  #   base:
+  #     apiVersion: eks.aws.jet.crossplane.io/v1alpha2
+  #     kind: NodeGroup
+  #     spec:
+  #       forProvider:
+  #         clusterNameSelector:
+  #           matchControllerRef: true
+  #         nodeRoleArnSelector:
+  #           matchControllerRef: true
+  #         subnetIdSelector:
+  #           matchControllerRef: true
+  #           matchLabels:
+  #             access: public
+  #         scalingConfig:
+  #         - maxSize: 5
+  #       providerConfigRef:
+  #         name: aws-jet-provider
+  #   patches:
+  #   - type: PatchSet
+  #     patchSetName: region
+  #   - fromFieldPath: spec.id
+  #     toFieldPath: metadata.name
+  #   - fromFieldPath: spec.id
+  #     toFieldPath: spec.forProvider.nodeRoleArnSelector.matchLabels.role
+  #     transforms:
+  #       - type: string
+  #         string:
+  #           fmt: "%s-nodegroup"      
+  #   - fromFieldPath: spec.parameters.nodeSize
+  #     toFieldPath: spec.forProvider.instanceTypes[0]
+  #     transforms:
+  #       - type: map
+  #         map:
+  #           small: t3.small
+  #           medium: t3.medium
+  #           large: t3.large
+  #   - fromFieldPath: spec.parameters.nodeCount
+  #     toFieldPath: spec.forProvider.scalingConfig[0].minSize
+  #   - fromFieldPath: spec.parameters.nodeCount
+  #     toFieldPath: spec.forProvider.scalingConfig[0].desiredSize
+  #   - type: ToCompositeFieldPath
+  #     fromFieldPath: status.atProvider.status
+  #     toFieldPath: status.nodePoolStatus
+  #   readinessChecks:
+  #   - type: MatchString
+  #     fieldPath: status.atProvider.status
+  #     matchString: ACTIVE
   - name: eksfargate
     base: 
-      apiVersion: eks.aws.crossplane.io/v1beta1
+      apiVersion: eks.aws.jet.crossplane.io/v1alpha2
       kind: FargateProfile
       spec:
         forProvider:
@@ -939,19 +1026,19 @@ spec:
             matchControllerRef: true
           podExecutionRoleArnSelector:
             matchControllerRef: true
-          subnetSelector:
+          subnetIdSelector:
             matchControllerRef: true
             matchLabels:
               access: private
         providerConfigRef:
-          name: aws-provider
+          name: aws-jet-provider
     patches:
     - type: PatchSet
       patchSetName: region
     - fromFieldPath: spec.id
       toFieldPath: metadata.name    
     - fromFieldPath: spec.parameters.fargateNamespace
-      toFieldPath: spec.forProvider.selectors[0].namespace
+      toFieldPath: spec.forProvider.selector[0].namespace
     - fromFieldPath: spec.id
       toFieldPath: spec.forProvider.podExecutionRoleArnSelector.matchLabels.role
       transforms:
@@ -966,88 +1053,88 @@ spec:
       fieldPath: status.atProvider.status
       matchString: ACTIVE
 
-  - name: helm
-    base:
-        apiVersion: helm.crossplane.io/v1beta1
-        kind: ProviderConfig
-        spec:
-          credentials:
-            source: Secret
-            secretRef:
-              key: kubeconfig
-    patches:
-      - fromFieldPath: spec.id
-        toFieldPath: metadata.name
-      - fromFieldPath: spec.writeConnectionSecretToRef.namespace
-        toFieldPath: spec.credentials.secretRef.namespace
-      - fromFieldPath: spec.id
-        toFieldPath: spec.credentials.secretRef.name
-        transforms:
-          - type: string
-            string:
-              fmt: "%s-ekscluster"
-    readinessChecks:
-      - type: None
-  - name: helm-crossplane
-    base:
-        apiVersion: helm.crossplane.io/v1beta1
-        kind: Release
-        spec:
-          rollbackLimit: 3
-          forProvider:
-            namespace: crossplane-system
-            chart:
-              name: crossplane
-              repository: https://charts.crossplane.io/stable
-              version: "1.6.3"
-    patches:
-    - fromFieldPath: spec.id
-      toFieldPath: metadata.name
-      transforms:
-        - type: string
-          string:
-            fmt: "%s-crossplane"
-    - fromFieldPath: spec.id
-      toFieldPath: spec.providerConfigRef.name
-  - name: kubernetes
-    base:
-      apiVersion: kubernetes.crossplane.io/v1alpha1
-      kind: ProviderConfig
-      spec:
-        credentials:
-          source: Secret
-          secretRef:
-            key: kubeconfig
-    patches:
-    - fromFieldPath: spec.id
-      toFieldPath: metadata.name
-    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
-      toFieldPath: spec.credentials.secretRef.namespace
-    - fromFieldPath: spec.id
-      toFieldPath: spec.credentials.secretRef.name
-      transforms:
-        - type: string
-          string:
-            fmt: "%s-ekscluster"
-    readinessChecks:
-      - type: None
-  - name: k8s-ns-prod
-    base:
-      apiVersion: kubernetes.crossplane.io/v1alpha1
-      kind: Object
-      spec:
-        forProvider:
-          manifest:
-            apiVersion: v1
-            kind: Namespace
-            metadata:
-              name: production
-    patches:
-    - fromFieldPath: spec.id
-      toFieldPath: metadata.name
-      transforms:
-        - type: string
-          string:
-            fmt: "%s-ns-prod"
-    - fromFieldPath: spec.id
-      toFieldPath: spec.providerConfigRef.name
+  # - name: helm
+  #   base:
+  #       apiVersion: helm.crossplane.io/v1alpha2
+  #       kind: ProviderConfig
+  #       spec:
+  #         credentials:
+  #           source: Secret
+  #           secretRef:
+  #             key: kubeconfig
+  #   patches:
+  #     - fromFieldPath: spec.id
+  #       toFieldPath: metadata.name
+  #     - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+  #       toFieldPath: spec.credentials.secretRef.namespace
+  #     - fromFieldPath: spec.id
+  #       toFieldPath: spec.credentials.secretRef.name
+  #       transforms:
+  #         - type: string
+  #           string:
+  #             fmt: "%s-ekscluster"
+  #   readinessChecks:
+  #     - type: None
+  # - name: helm-crossplane
+  #   base:
+  #       apiVersion: helm.crossplane.io/v1alpha2
+  #       kind: Release
+  #       spec:
+  #         rollbackLimit: 3
+  #         forProvider:
+  #           namespace: crossplane-system
+  #           chart:
+  #             name: crossplane
+  #             repository: https://charts.crossplane.io/stable
+  #             version: "1.6.3"
+  #   patches:
+  #   - fromFieldPath: spec.id
+  #     toFieldPath: metadata.name
+  #     transforms:
+  #       - type: string
+  #         string:
+  #           fmt: "%s-crossplane"
+  #   - fromFieldPath: spec.id
+  #     toFieldPath: spec.providerConfigRef.name
+  # - name: kubernetes
+  #   base:
+  #     apiVersion: kubernetes.crossplane.io/v1alpha1
+  #     kind: ProviderConfig
+  #     spec:
+  #       credentials:
+  #         source: Secret
+  #         secretRef:
+  #           key: kubeconfig
+  #   patches:
+  #   - fromFieldPath: spec.id
+  #     toFieldPath: metadata.name
+  #   - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+  #     toFieldPath: spec.credentials.secretRef.namespace
+  #   - fromFieldPath: spec.id
+  #     toFieldPath: spec.credentials.secretRef.name
+  #     transforms:
+  #       - type: string
+  #         string:
+  #           fmt: "%s-ekscluster"
+  #   readinessChecks:
+  #     - type: None
+  # - name: k8s-ns-prod
+  #   base:
+  #     apiVersion: kubernetes.crossplane.io/v1alpha1
+  #     kind: Object
+  #     spec:
+  #       forProvider:
+  #         manifest:
+  #           apiVersion: v1
+  #           kind: Namespace
+  #           metadata:
+  #             name: production
+  #   patches:
+  #   - fromFieldPath: spec.id
+  #     toFieldPath: metadata.name
+  #     transforms:
+  #       - type: string
+  #         string:
+  #           fmt: "%s-ns-prod"
+  #   - fromFieldPath: spec.id
+  #     toFieldPath: spec.providerConfigRef.name

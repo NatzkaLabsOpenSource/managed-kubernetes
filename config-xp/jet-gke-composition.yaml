@@ -1,10 +1,10 @@
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
-  name: gke
+  name: jet-gke
   labels:
     crossplane.io/xrd: xmanagedclusters.compositions.io
-    provider: classic
+    provider: jet
     cluster: gke
 spec:
   compositeTypeRef:
@@ -74,7 +74,7 @@ spec:
   resources:
   - name: compute-net
     base: 
-      apiVersion: compute.gcp.crossplane.io/v1beta1
+      apiVersion: compute.gcp.jet.crossplane.io/v1alpha2
       kind: Network
       spec:
         forProvider:
@@ -82,7 +82,7 @@ spec:
           routingConfig:
             routingMode: REGIONAL
         providerConfigRef:
-          name: gcp-provider 
+          name: gcp-jet-provider
     patches:
     - type: PatchSet
       patchSetName: metadata
@@ -90,7 +90,7 @@ spec:
       toFieldPath: metadata.name
   - name: compute-subnet
     base:
-      apiVersion: compute.gcp.crossplane.io/v1beta1
+      apiVersion: compute.gcp.jet.crossplane.io/v1alpha2
       kind: Subnetwork
       spec:
         forProvider:
@@ -98,13 +98,13 @@ spec:
             matchControllerRef: true
           privateIpGoogleAccess: true
           ipCidrRange: 172.16.0.0/16
-          secondaryIpRanges:
+          secondaryIpRange: # secondaryIpRanges in classic
           - rangeName: pods
             ipCidrRange: 10.200.0.0/14
           - rangeName: services
             ipCidrRange: 10.204.0.0/16      
         providerConfigRef:
-          name: gcp-provider
+          name: gcp-jet-provider
     patches:
     - type: PatchSet
       patchSetName: metadata
@@ -114,41 +114,45 @@ spec:
       toFieldPath: metadata.name
   - name: gkecluster
     base:
-      apiVersion: container.gcp.crossplane.io/v1beta2
+      apiVersion: container.gcp.jet.crossplane.io/v1alpha2
       kind: Cluster
       metadata:
         labels:
           fargateProfile: "NOT-APPLICABLE"
       spec:
         forProvider:
+          initialNodeCount: 1          # jet only
+          removeDefaultNodePool: true  # jet only
           addonsConfig:
-            gcePersistentDiskCsiDriverConfig:
-              enabled: true
-            networkPolicyConfig:
-              disabled: false
+          - networkPolicyConfig:
+            - disabled: false
+            # gcePersistentDiskCsiDriverConfig:
+            #  enabled: true
           ipAllocationPolicy:
-            clusterSecondaryRangeName: pods
-            createSubnetwork: false
-            servicesSecondaryRangeName: services
-            useIpAliases: true
+          - clusterSecondaryRangeName: pods
+            servicesSecondaryRangeName: services          
+            # createSubnetwork: false 
+            # useIpAliases: true
           loggingService: logging.googleapis.com/kubernetes
-          masterAuth:
-            username:
-          masterAuthorizedNetworksConfig:
-            enabled: false  
+          # masterAuth:
+          #  username:
+          # masterAuthorizedNetworksConfig:
+          #  enabled: false  
           monitoringService: monitoring.googleapis.com/kubernetes
           networkPolicy:
-            enabled: true
-          networkSelector:
-            matchControllerRef: true 
+          - enabled: true
+          # networkSelector:
+          #   matchControllerRef: true 
           networkConfig:
             enableIntraNodeVisibility: true  
-          subnetworkSelector:
-            matchControllerRef: true 
+          # subnetworkSelector:
+          #   matchControllerRef: true 
+          releaseChannel:
+          - channel: UNSPECIFIED
         writeConnectionSecretToRef:
           namespace: crossplane-system
         providerConfigRef:
-          name: gcp-provider        
+          name: gcp-jet-provider        
     patches:
     - type: PatchSet
       patchSetName: metadata
@@ -156,9 +160,10 @@ spec:
       patchSetName: location
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
-    - type: ToCompositeFieldPath
-      fromFieldPath: metadata.name
-      toFieldPath: status.clusterName     
+    - fromFieldPath: spec.id
+      toFieldPath: spec.forProvider.network
+    - fromFieldPath: spec.id
+      toFieldPath: spec.forProvider.subnetwork 
     - fromFieldPath: spec.parameters.version
       toFieldPath: spec.forProvider.initialClusterVersion
     - fromFieldPath: spec.id
@@ -169,7 +174,10 @@ spec:
           fmt: "%s-gkecluster"    
     - fromFieldPath: spec.writeConnectionSecretToRef.namespace
     - type: ToCompositeFieldPath
-      fromFieldPath: status.atProvider.status
+      fromFieldPath: metadata.name
+      toFieldPath: status.clusterName    
+    - type: ToCompositeFieldPath
+      fromFieldPath: status.conditions[0].status
       toFieldPath: status.controlPlaneStatus
     - type: ToCompositeFieldPath
       fromFieldPath: metadata.name
@@ -182,12 +190,11 @@ spec:
     - fromConnectionSecretKey: kubeconfig  
     readinessChecks:
     - type: MatchString
-      fieldPath: "status.atProvider.status"
-      matchString: "RUNNING"
-
+      fieldPath: status.conditions[0].status
+      matchString: "True"
   - name: gkenode
     base:
-      apiVersion: container.gcp.crossplane.io/v1beta1
+      apiVersion: container.gcp.jet.crossplane.io/v1alpha2
       kind: NodePool
       spec:
         forProvider:
@@ -204,20 +211,21 @@ spec:
               enableIntegrityMonitoring: true
               enableSecureBoot: true
           autoscaling:
-            enabled: true
+          - enabled: true
+            minNodeCount: 1 
             maxNodeCount: 5
           management:
-            autoRepair: true
+          - autoRepair: true
             autoUpgrade: false
         providerConfigRef:
-          name: gcp-provider
+          name: gcp-jet-provider
     patches:
     - type: PatchSet
       patchSetName: metadata
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
     - fromFieldPath: spec.parameters.nodeCount
-      toFieldPath: spec.forProvider.autoscaling.minNodeCount
+      toFieldPath: spec.forProvider.autoscaling[0].minNodeCount
     - fromFieldPath: spec.parameters.nodeCount
       toFieldPath: spec.forProvider.initialNodeCount  
     - fromFieldPath: spec.parameters.nodeSize
@@ -229,12 +237,13 @@ spec:
           medium: e2-standard-4
           large: e2-standard-16      
     - type: ToCompositeFieldPath
-      fromFieldPath: status.atProvider.status
+      fromFieldPath: status.conditions[0].status
       toFieldPath: status.nodePoolStatus
     readinessChecks:
     - type: MatchString
-      fieldPath: status.atProvider.status
-      matchString: RUNNING
+      fieldPath: status.conditions[0].status
+      matchString: "True"
+
   - name: helm
     base:
         apiVersion: helm.crossplane.io/v1beta1
