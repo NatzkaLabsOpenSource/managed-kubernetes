@@ -1,3 +1,4 @@
+[![Board Status](https://dev.azure.com/natzkalabs/4213af36-8960-4b81-a795-56d7fb49bcc8/076216e9-e3d3-4797-83e9-e8298c70331d/_apis/work/boardbadge/773aee6f-0489-4351-85be-7893d1056977)](https://dev.azure.com/natzkalabs/4213af36-8960-4b81-a795-56d7fb49bcc8/_boards/board/t/076216e9-e3d3-4797-83e9-e8298c70331d/Microsoft.RequirementCategory)
 # What's New in Release v3
 
 24 Jan 2022 Crossplane announced [Terrajet](https://blog.crossplane.io/announcing-terrajet/) support which was supposed to deliver 100% of coverage for main 3 Cloud providers. 
