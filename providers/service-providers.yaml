@@ -4,11 +4,11 @@ kind: Provider
 metadata:
   name: helm-provider
 spec:
-  package: crossplane/provider-helm:v0.10.0 
+  package: crossplane/provider-helm:v0.10.0
 ---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
   name: kubernetes-provider
 spec:
-  package: crossplane/provider-kubernetes:v0.3.0
+  package: crossplane/provider-kubernetes:v0.4.0

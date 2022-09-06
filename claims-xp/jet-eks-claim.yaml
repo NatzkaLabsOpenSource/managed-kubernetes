@@ -12,12 +12,12 @@ spec:
       cluster: eks
       provider: jet
   parameters:
-    version: "1.21" 
+    version: "1.22"
     fargateNamespace: default
     # nodeSize: small ### Supported values: small, medium, large
-    # nodeCount: 3 
+    # nodeCount: 3
     # region:  apne2
     # region: usw1
-    region: eun
+    region: euw1
   writeConnectionSecretToRef:
     name: xpjeteks

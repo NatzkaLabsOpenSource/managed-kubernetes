@@ -10,7 +10,7 @@ spec:
   compositeTypeRef:
     apiVersion: compositions.io/v1alpha1
     kind: XManagedCluster
-  writeConnectionSecretsToNamespace: crossplane-system  
+  writeConnectionSecretsToNamespace: crossplane-system
   patchSets:
   - name: metadata
     patches:
@@ -20,26 +20,26 @@ spec:
     - fromFieldPath: spec.parameters.region
       toFieldPath: spec.forProvider.region
       transforms:
-      - type: map               
-        map:                    # Standard AZs: a-c; Fargate Support   
+      - type: map
+        map:                    # Standard AZs: a-c; Fargate Support
           use1: us-east-1       # a-f
-          use2: us-east-2      
+          use2: us-east-2
           usw1: us-west-1       # ac
           usw2: us-west-2       # a-d
           cac: ca-central-1     # abd, FG: ab
-          sae: sa-east-1        
+          sae: sa-east-1
           afs: af-south-1       # default: disabled
-          euc: eu-central-1    
-          euw1: eu-west-1      
-          euw2: eu-west-2      
-          euw3: eu-west-3      
+          euc: eu-central-1
+          euw1: eu-west-1
+          euw2: eu-west-2
+          euw3: eu-west-3
           eus: eu-south-1       # default: disabled
-          eun: eu-north-1      
+          eun: eu-north-1
           ape: ap-east-1        # default: disabled
           aps1: ap-south-1
           apne1: ap-northeast-1 # acd
           apne2: ap-northeast-2 # a-d
-          apne3: ap-northeast-3 
+          apne3: ap-northeast-3
           apse1: ap-southeast-1
           apse2: ap-southeast-2
           apse3: ap-southeast-3 # default: disabled
@@ -70,7 +70,7 @@ spec:
           apne3: ap-northeast-3a
           apse1: ap-southeast-1a
           apse2: ap-southeast-2a
-          apse3: ap-southeast-3a          
+          apse3: ap-southeast-3a
     - fromFieldPath: spec.parameters.region
       toFieldPath: spec.forProvider.availabilityZone
       transforms:
@@ -178,7 +178,7 @@ spec:
           apne3: ap-northeast-3c
           apse1: ap-southeast-1c
           apse2: ap-southeast-2c
-          apse3: ap-southeast-3c    
+          apse3: ap-southeast-3c
     - fromFieldPath: spec.parameters.region
       toFieldPath: spec.forProvider.availabilityZone
       transforms:
@@ -319,13 +319,13 @@ spec:
       transforms:
       - type: string
         string:
-          fmt: "%s-controlplane" 
+          fmt: "%s-controlplane"
     - fromFieldPath: spec.id
       toFieldPath: metadata.labels.role
       transforms:
       - type: string
         string:
-          fmt: "%s-controlplane"  
+          fmt: "%s-controlplane"
   - name: iamrole-nodegroup
     base:
       apiVersion: iam.aws.crossplane.io/v1beta1
@@ -348,7 +348,7 @@ spec:
                       ]
                   }
               ]
-            }                
+            }
         providerConfigRef:
           name: aws-provider
     patches:
@@ -386,7 +386,7 @@ spec:
                       ]
                   }
               ]
-            }         
+            }
         providerConfigRef:
           name: aws-provider
     patches:
@@ -427,8 +427,8 @@ spec:
       transforms:
       - type: string
         string:
-          fmt: "%s-controlplane"          
-  - name: iamrolepolicy-cp-002 
+          fmt: "%s-controlplane"
+  - name: iamrolepolicy-cp-002
     base:
       apiVersion: iam.aws.crossplane.io/v1beta1
       kind: RolePolicyAttachment
@@ -547,7 +547,7 @@ spec:
       transforms:
       - type: string
         string:
-          fmt: "%s-fargateprofile"      
+          fmt: "%s-fargateprofile"
 
   - name: ec2-vpc
     base:
@@ -614,7 +614,7 @@ spec:
     - type: PatchSet
       patchSetName: region
     - type: PatchSet
-      patchSetName: snet-zone-1 
+      patchSetName: snet-zone-1
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
       transforms:
@@ -639,7 +639,7 @@ spec:
           - key: Name
             value: eks-cluster
           - key: kubernetes.io/role/elb
-            value: "1" 
+            value: "1"
         providerConfigRef:
           name: aws-provider
     patches:
@@ -671,7 +671,7 @@ spec:
           - key: Name
             value: eks-cluster
           - key: kubernetes.io/role/elb
-            value: "1"          
+            value: "1"
         providerConfigRef:
           name: aws-provider
     patches:
@@ -715,7 +715,7 @@ spec:
       transforms:
       - type: string
         string:
-          fmt: "%s-prv-a"      
+          fmt: "%s-prv-a"
   - name: ec2snet-prv-b
     base:
       apiVersion: ec2.aws.crossplane.io/v1beta1
@@ -745,7 +745,7 @@ spec:
       transforms:
       - type: string
         string:
-          fmt: "%s-prv-b"        
+          fmt: "%s-prv-b"
   - name: ec2snet-prv-c
     base:
       apiVersion: ec2.aws.crossplane.io/v1beta1
@@ -762,7 +762,7 @@ spec:
           mapPublicIPOnLaunch: true
           tags:
           - key: Name
-            value: eks-cluster          
+            value: eks-cluster
         providerConfigRef:
           name: aws-provider
     patches:
@@ -775,7 +775,7 @@ spec:
       transforms:
       - type: string
         string:
-          fmt: "%s-prv-c"  
+          fmt: "%s-prv-c"
 
   - name: ec2-ig
     base:
@@ -829,7 +829,7 @@ spec:
     - type: PatchSet
       patchSetName: route-zones
     - fromFieldPath: spec.id
-      toFieldPath: metadata.name       
+      toFieldPath: metadata.name
 
   - name: ekscluster
     base:
@@ -853,9 +853,6 @@ spec:
       patchSetName: region
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
-    - type: ToCompositeFieldPath
-      fromFieldPath: metadata.name
-      toFieldPath: status.clusterName   
     - fromFieldPath: spec.id
       toFieldPath: spec.forProvider.roleArnSelector.matchLabels.role
       transforms:
@@ -870,7 +867,10 @@ spec:
         - type: string
           string:
             fmt: "%s-ekscluster"
-    - fromFieldPath: spec.writeConnectionSecretToRef.namespace         
+    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+    - type: ToCompositeFieldPath
+      fromFieldPath: metadata.name
+      toFieldPath: status.clusterName
     - type: ToCompositeFieldPath
       fromFieldPath: status.atProvider.status
       toFieldPath: status.controlPlaneStatus
@@ -921,7 +921,7 @@ spec:
       transforms:
         - type: string
           string:
-            fmt: "%s-nodegroup"      
+            fmt: "%s-nodegroup"
     - type: ToCompositeFieldPath
       fromFieldPath: status.atProvider.status
       toFieldPath: status.nodePoolStatus
@@ -930,7 +930,7 @@ spec:
       fieldPath: status.atProvider.status
       matchString: ACTIVE
   - name: eksfargate
-    base: 
+    base:
       apiVersion: eks.aws.crossplane.io/v1beta1
       kind: FargateProfile
       spec:
@@ -949,7 +949,7 @@ spec:
     - type: PatchSet
       patchSetName: region
     - fromFieldPath: spec.id
-      toFieldPath: metadata.name    
+      toFieldPath: metadata.name
     - fromFieldPath: spec.parameters.fargateNamespace
       toFieldPath: spec.forProvider.selectors[0].namespace
     - fromFieldPath: spec.id
@@ -957,7 +957,7 @@ spec:
       transforms:
         - type: string
           string:
-            fmt: "%s-fargateprofile"      
+            fmt: "%s-fargateprofile"
     - type: ToCompositeFieldPath
       fromFieldPath: status.atProvider.status
       toFieldPath: status.fargateProfileStatus

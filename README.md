@@ -1,40 +1,24 @@
-# What's New in Release v3
+# What's new in 3.1
 
-24 Jan 2022 Crossplane announced [Terrajet](https://blog.crossplane.io/announcing-terrajet/) support which was supposed to deliver 100% of coverage for main 3 Cloud providers. 
-To give you possibility to quick start with them I updated this repo adding support for Jet Providers.
+RouteTable, SecurityGroup and Nodegroup resources have been fixed. InternetGateway has been added to AWS classic jet provider so I was able to use this one over preview.
 
-## Limitations
-
-During developing code I faced few issues with AWS Jet Provider:
-
-1. SecurityGroup - no sync (GitHub Issue [157](https://github.com/crossplane-contrib/provider-jet-aws/issues/157)) 
-2. RouteTable - no sync (GitHub Issue [184](https://github.com/crossplane-contrib/provider-jet-aws/issues/184))
-3. NodeGroup - unable to create resource (GitHub Issue [187](https://github.com/crossplane-contrib/provider-jet-aws/issues/187))
-
-First two have to be removed manually using patch or edit commands from Crossplane and manually from AWS.
-
-```
-kubectl patch --type json --patch='[ { "op": "remove", "path": "/metadata/finalizers" } ]' routetable.ec2.aws.jet.crossplane.io/xpjeteks-rt
-kubectl patch --type json --patch='[ { "op": "remove", "path": "/metadata/finalizers" } ]' securitygroup.ec2.aws.jet.crossplane.io/xpjeteks-sg
-kubectl patch --type json --patch='[ { "op": "remove", "path": "/metadata/finalizers" } ]' vpc.ec2.aws.jet.crossplane.io/xpjeteks
-```
-
-Last one unables to created Node Group giving you only option to use Fargate for application deployment.
-As you can see last one is really critical and I hope it will be fixed very soon.
-
-# What's New in Release v2
-
-1. Support for Upstream Crossplane
-1. Support for [Regions](docs/cloud-regions.MD) in Composite Resource
-1. Post Provisioning using Helm and Kubernetes Providers
+New issues found out,
+1. Duplicate resource for FargateProfile:
+    Impact: FargateProfile is commented out in eks jet composition.
+    - Crossplane Jet AWS [220](https://github.com/crossplane-contrib/provider-jet-aws/issues/220)
+    - Hashicorp AWS [26021](https://github.com/hashicorp/terraform-provider-aws/issues/26021)
+1. No Kubeconfig secret created by AWS Jet Provider
+    Impact: Kubernetes and Helm providers are commented in eks jet composition.
+    - Crossplane Jet AWS [229](https://github.com/crossplane-contrib/provider-jet-aws/issues/229)
 
 # Multi-cloud Managed Kubernetes
 
-This project was created to build managed Kubernetes `Composite Resource` (XR) with 
+This project was created to build managed Kubernetes `Composite Resource` (XR) with
 compositions across multiple cloud providers. You can use it as a foundation to understand, build
 and operate managed Kubernetes Platform in the Cloud.
 This repository uses both upstream ([Crossplane (XP)](https://crossplane.io/)) and its downstream version ([Upbound Universal Crossplane (UXP)](https://www.upbound.io/products/uxp)).
-Compositions use for cloud provisioning Native/Classic Crossplane Providers for AWS, Azure and GCP and for the post provisioning Helm and Kubernetes:
+Compositions use for cloud provisioning both Native(Classic) and Jet Crossplane Providers for AWS, Azure and GCP.
+Post Provisioning using Helm and Kubernetes Providers.
 
 ## Classic/Native Providers
 * [AWS Provider](https://doc.crds.dev/github.com/crossplane/provider-aws)
@@ -46,8 +30,8 @@ Compositions use for cloud provisioning Native/Classic Crossplane Providers for 
 Two different jet provider versions are available:
 - Classic jet with support for limited number of the most important resources
 - Preview jet supporting all cloud resources at least those supported by Terraform
-For this repository I used classic providers for Azure and GCP and Preview for AWS. The reason I used Preview for AWS
-is lack of `InternetGateway` resource in Classic Jet version. (GitHub Issue [183](https://github.com/crossplane-contrib/provider-jet-aws/issues/183)).
+
+For this repository I used classic jet providers as they cover all resources needed to create managed Kubernetes resources.
 
 * [AWS Provider](https://doc.crds.dev/github.com/crossplane-contrib/provider-jet-aws)
 * [Azure Provider](https://doc.crds.dev/github.com/crossplane-contrib/provider-jet-azure)
@@ -63,7 +47,7 @@ To demonstrate usage for both post provisioning resources I created following ex
 
 ## Prerequisites
 
-Install Kubernetes Cluster. I recommend to use [Rancher Desktop](https://rancherdesktop.io/) for local cluster. 
+Install Kubernetes Cluster. I recommend to use [Rancher Desktop](https://rancherdesktop.io/) for local cluster.
 
 ### Configure Crossplane
 
@@ -99,21 +83,19 @@ kubectl get all -n crossplane-system
 
 Regular Jet perovider for AWS 0v.4.2 does not support InternetGateway.
 To build EKS cluster using jet provider preview version has to be used.
-At that moment installing preview version with other providers is failing due to 
+At that moment installing preview version with other providers is failing due to
 big number of CRDs. (1119)
 For this reason I recommend to set up AWS jet provider alone in K8s
 
    ```console
    # UXP                              
-   kubectl apply -f providers/providers.yaml              
+   kubectl apply -f providers/uxp-providers.yaml              
    # XP Classic
    kubectl apply -f providers/xp-providers.yaml
    # XP Jet Classic
    kubectl apply -f providers/jet-providers.yaml
-   # XP Jet AWS Preview
-   kubectl apply -f providers/jet-aws-preview-provider.yaml
    # XP Service
-   kubectl apply -f providers/service-providers.yaml 
+   kubectl apply -f providers/service-providers.yaml
 
    kubectl get providers.pkg
    ```
@@ -129,7 +111,7 @@ As an output of above setup you should get three credentials files with followin
 aws_access_key_id = XXXXXXXXXX
 aws_secret_access_key = WFhYWFhYWFhYWA==
 ```
-- azure-cred.json 
+- azure-cred.json
 ```yaml
 {
   "clientId": "XXXXXXXXXX",
@@ -164,8 +146,8 @@ To retrieve credential files from Azure KV you can use following:
 
 ```console
 KEYVAULT=KeyVault
-az keyvault secret show --name uxpAzureCred --vault-name $KEYVAULT --query value -o tsv | jq > azure-cred.json
 az keyvault secret show --name uxpAwsCred --vault-name $KEYVAULT --query value -o tsv | sed -r 's@ aws@\naws@g' > aws-cred.conf
+az keyvault secret show --name uxpAzureCred --vault-name $KEYVAULT --query value -o tsv | jq > azure-cred.json
 az keyvault secret show --name uxpGcpCred --vault-name $KEYVAULT --query value -o tsv | jq > gcp-cred.json
 ```
 
@@ -177,14 +159,14 @@ To be able to provision cloud resources using Crossplane we have to create and c
 
 We need to set up two environment variables:
 - base64 encoded cloud credentials
-- Name of the Namespace, for UXP: `upbound-system` for XP: `crossplane-system` 
+- Name of the Namespace, for UXP: `upbound-system` for XP: `crossplane-system`
 
 #### AWS Provider
 
 ```console
 BASE64ENCODED_AWS_ACCOUNT_CREDS=$(base64 aws-cred.conf | tr -d "\n")
 PROVIDER_SECRET_NAMESPACE=crossplane-system
-eval "echo \"$(cat providers/secret-aws-provider.yaml)\"" | kubectl apply -f - 
+eval "echo \"$(cat providers/secret-aws-provider.yaml)\"" | kubectl apply -f -
 # Classic Provider
 eval "echo \"$(cat providers/aws-provider.yaml)\"" | kubectl apply -f -
 kubectl get providerconfig.aws.crossplane.io
@@ -198,7 +180,7 @@ kubectl get providerconfig.aws.jet.crossplane.io
 ```console
 BASE64ENCODED_AZURE_ACCOUNT_CREDS=$(base64 azure-cred.json | tr -d "\n")
 PROVIDER_SECRET_NAMESPACE=crossplane-system
-eval "echo \"$(cat providers/secret-azure-provider.yaml)\"" | kubectl apply -f 
+eval "echo \"$(cat providers/secret-azure-provider.yaml)\"" | kubectl apply -f -
 # Classic Provider
 eval "echo \"$(cat providers/azure-provider.yaml)\"" | kubectl apply -f -
 kubectl get providerconfig.azure.crossplane.io
@@ -215,7 +197,7 @@ For GCP we need additionally third environment variable: project ID.
 PROJECT_ID=$(gcloud projects list --filter='NAME:<Project Name>' --format="value(PROJECT_ID.scope())")
 BASE64ENCODED_GCP_PROVIDER_CREDS=$(base64 gcp-cred.json | tr -d "\n")
 PROVIDER_SECRET_NAMESPACE=crossplane-system
-eval "echo \"$(cat providers/secret-gcp-provider.yaml)\"" | kubectl apply -f - 
+eval "echo \"$(cat providers/secret-gcp-provider.yaml)\"" | kubectl apply -f -
 # Classic Provider
 eval "echo \"$(cat providers/gcp-provider.yaml)\"" | kubectl apply -f -
 kubectl get providerconfig.gcp.crossplane.io
@@ -224,12 +206,12 @@ eval "echo \"$(cat providers/jet-gcp-provider.yaml)\"" | kubectl apply -f -
 kubectl get providerconfig.gcp.jet.crossplane.io
 ```
 
-#### Clean-up 
+#### Clean-up
 
 ```console
-unset BASE64ENCODED_AWS_ACCOUNT_CREDS BASE64ENCODED_AZURE_ACCOUNT_CREDS BASE64ENCODED_GCP_PROVIDER_CREDS PROJECT_ID PROVIDER_SECRET_NAMESPACE 
+unset BASE64ENCODED_AWS_ACCOUNT_CREDS BASE64ENCODED_AZURE_ACCOUNT_CREDS BASE64ENCODED_GCP_PROVIDER_CREDS PROJECT_ID PROVIDER_SECRET_NAMESPACE
 rm aws-cred.conf azure-cred.json gcp-cred.json
-``` 
+```
 
 ### Provisioning Infrastructure
 
@@ -239,8 +221,8 @@ Crossplane divides responsibility for the infrastructure provisioning as follows
 
 #### Defining Infrastructure by Ops team
 
-Platform team creates compositions and composite resource definitions (XRDs) to define and configure 
-managed kubernetes services infrastructure in cloud. 
+Platform team creates compositions and composite resource definitions (XRDs) to define and configure
+managed kubernetes services infrastructure in cloud.
 
 ```console
 # UXP: CONFIG=config, XP: CONFIG=config-xp                                           
@@ -251,7 +233,7 @@ kubectl apply -f $CONFIG/gke-composition.yaml
 kubectl apply -f $CONFIG/jet-eks-composition.yaml
 kubectl apply -f $CONFIG/jet-aks-composition.yaml
 kubectl apply -f $CONFIG/jet-gke-composition.yaml
-``` 
+```
 
 #### Consuming the infrastructure by Dev team
 
@@ -260,13 +242,13 @@ App team provisions infrastructure by creating claim objects for the XRDs define
 ```console
 kubectl create ns managed
 # UXP: CLAIMS=claims, XP: CLAIMS=claims-xp
-kubectl apply -f $CLAIMS/eks-claim.yaml 
-kubectl apply -f $CLAIMS/aks-claim.yaml 
-kubectl apply -f $CLAIMS/gke-claim.yaml 
-kubectl apply -f $CLAIMS/jet-eks-claim.yaml 
-kubectl apply -f $CLAIMS/jet-aks-claim.yaml 
-kubectl apply -f $CLAIMS/jet-gke-claim.yaml 
-``` 
+kubectl apply -f $CLAIMS/eks-claim.yaml
+kubectl apply -f $CLAIMS/aks-claim.yaml
+kubectl apply -f $CLAIMS/gke-claim.yaml
+kubectl apply -f $CLAIMS/jet-eks-claim.yaml
+kubectl apply -f $CLAIMS/jet-aks-claim.yaml
+kubectl apply -f $CLAIMS/jet-gke-claim.yaml
+```
 
 #### Verifying Infrastructure status
 
@@ -302,7 +284,7 @@ release.helm.crossplane.io/xpgke-crossplane   crossplane   1.6.3     True     Tr
 # Using secret
 kubectl -n managed get secret xpaks --output jsonpath="{.data.kubeconfig}" | base64 -d | tee kubeconfig
 kubectl -n managed get secret xpeks --output jsonpath="{.data.kubeconfig}" | base64 -d | tee kubeconfig
-# To get credentials for GKE use cloud APIs. 
+# To get credentials for GKE use cloud APIs.
 export KUBECONFIG=$PWD/kubeconfig
 
 # Using Cloud APIs
@@ -318,10 +300,10 @@ aws eks --region us-west-1 update-kubeconfig --name uxpeks
 Deleting claims will take care of clean-up of all managed resources created to satisfy the claim.
 
 ```console
-kubectl delete managedcluster -n managed xpeks 
-kubectl delete managedcluster -n managed xpaks 
-kubectl delete managedcluster -n managed xpgke 
-``` 
+kubectl delete managedcluster -n managed xpeks
+kubectl delete managedcluster -n managed xpaks
+kubectl delete managedcluster -n managed xpgke
+```
 
 #### Delete Cloud Configuration
 
@@ -335,26 +317,32 @@ kubectl delete providerconfig.gcp.crossplane.io gcp-provider
 kubectl delete providerconfig.aws.jet.crossplane.io/aws-jet-provider
 kubectl delete providerconfig.azure.jet.crossplane.io azure-jet-provider
 kubectl delete providerconfig.gcp.jet.crossplane.io gcp-jet-provider
-``` 
+```
 
 #### Delete Cloud Secrets
 
-Name of the Namespace, for UXP: `upbound-system` for XP: `crossplane-system` 
+Name of the Namespace, for UXP: `upbound-system` for XP: `crossplane-system`
 
 ```console
-# UXP: NS=upbound-system, XP: NS=crossplane-system 
+# UXP: NS=upbound-system, XP: NS=crossplane-system
 kubectl delete secret -n $NS aws-account-creds
 kubectl delete secret -n $NS azure-account-creds
 kubectl delete secret -n $NS gcp-account-creds
-``` 
+```
 
 #### Uninstall Provider
 
 ```console
 kubectl get provider.pkg
+# classic
 kubectl delete provider.pkg aws-provider
 kubectl delete provider.pkg azure-provider
 kubectl delete provider.pkg gcp-provider
+# jet
+kubectl delete provider.pkg aws-jet-provider
+kubectl delete provider.pkg azure-jet-provider
+kubectl delete provider.pkg gcp-jet-provider
+# Others
 kubectl delete provider.pkg helm-provider
 kubectl delete provider.pkg kubernetes-provider
 ```
@@ -394,82 +382,6 @@ kubectl get managed
 kubectl get aws
 kubectl get azure
 kubectl get gcp
-```
-
-### AWS
-
-```console
-kubectl get Role.iam.aws.crossplane.io,\
-RolePolicyAttachment.iam.aws.crossplane.io,\
-VPC.ec2.aws.crossplane.io,\
-SecurityGroup.ec2.aws.crossplane.io,\
-Subnet.ec2.aws.crossplane.io,\
-InternetGateway.ec2.aws.crossplane.io,\
-RouteTable.ec2.aws.crossplane.io,\
-Cluster.eks.aws.crossplane.io,\
-NodeGroup.eks.aws.crossplane.io,\
-FargateProfile.eks.aws.crossplane.io,\
-ProviderConfig.helm.crossplane.io,\
-Release.helm.crossplane.io,\
-ProviderConfig.kubernetes.crossplane.io,\
-Object.kubernetes.crossplane.io
-```
-
-### Azure
-
-Classic Provider
-
-```console
-kubectl get ResourceGroup.azure.crossplane.io,\
-VirtualNetwork.network.azure.crossplane.io,\
-Subnet.network.azure.crossplane.io,\
-AKSCluster.compute.azure.crossplane.io,\
-ProviderConfig.helm.crossplane.io,\
-Release.helm.crossplane.io,\
-ProviderConfig.kubernetes.crossplane.io,\
-Object.kubernetes.crossplane.io
-```
-
-Jet Provider
-
-```console
-kubectl get ResourceGroup.azure.jet.crossplane.io,\
-VirtualNetwork.network.azure.jet.crossplane.io,\
-Subnet.network.azure.jet.crossplane.io,\
-KubernetesCluster.containerservice.azure.jet.crossplane.io,\
-KubernetesClusterNodePool.containerservice.azure.jet.crossplane.io,\
-ProviderConfig.helm.crossplane.io,\
-Release.helm.crossplane.io,\
-ProviderConfig.kubernetes.crossplane.io,\
-Object.kubernetes.crossplane.io
-```
-
-### GCP
-
-Classic Provider
-
-```console
-kubectl get Network.compute.gcp.crossplane.io,\
-Subnetwork.compute.gcp.crossplane.io,\
-Cluster.container.gcp.crossplane.io,\
-NodePool.container.gcp.crossplane.io,\
-ProviderConfig.helm.crossplane.io,\
-Release.helm.crossplane.io,\
-ProviderConfig.kubernetes.crossplane.io,\
-Object.kubernetes.crossplane.io
-```
-
-Jet Provider
-
-```console
-kubectl get Network.compute.gcp.jet.crossplane.io,\
-Subnetwork.compute.gcp.jet.crossplane.io,\
-Cluster.container.gcp.jet.crossplane.io,\
-NodePool.container.gcp.jet.crossplane.io,\
-ProviderConfig.helm.crossplane.io,\
-Release.helm.crossplane.io,\
-ProviderConfig.kubernetes.crossplane.io,\
-Object.kubernetes.crossplane.io
 ```
 
 ## Supported Kubernetes Cluster properties
@@ -518,7 +430,7 @@ Object.kubernetes.crossplane.io
   * [AWS Provider Config](providers/aws-provider.yaml)    
   * [Azure Provider Config](providers/azure-provider.yaml)    
   * [GCP Provider Config](providers/gcp-provider.yaml)
-  * [Setup Jet](providers/jet-providers.yaml), [AWS Jet Preview](providers/jet-aws-preview-provider.yaml) 
+  * [Setup Jet](providers/jet-providers.yaml)
   * [AWS Jet Provider Config](providers/jet-aws-provider.yaml)    
   * [Azure Jet Provider Config](providers/jet-azure-provider.yaml)    
   * [GCP Jet Provider Config](providers/jet-gcp-provider.yaml)
@@ -545,3 +457,13 @@ by automatically forking the project and prompting to send a pull request too.
 [fork]: https://help.github.com/articles/fork-a-repo/
 [branch]: https://help.github.com/articles/creating-and-deleting-branches-within-your-repository
 [pr]: https://help.github.com/articles/using-pull-requests/
+
+## Closed issues found in release v3
+
+1. Lack of `InternetGateway` resource in Classic Jet version for AWS. (GitHub Issue [183](https://github.com/crossplane-contrib/provider-jet-aws/issues/183)).
+2. RouteTable - no sync
+   (Issue [184](https://github.com/crossplane-contrib/provider-jet-aws/issues/184), PR [197](https://github.com/crossplane-contrib/provider-jet-aws/pull/197))
+3. NodeGroup - unable to create resource
+   (Issue [187](https://github.com/crossplane-contrib/provider-jet-aws/issues/187)), PR [201](https://github.com/crossplane-contrib/provider-jet-aws/pull/201)
+4. SecurityGroup - no sync
+   (Issue [157](https://github.com/crossplane-contrib/provider-jet-aws/issues/157), PR [198](https://github.com/crossplane-contrib/provider-jet-aws/pull/198))
