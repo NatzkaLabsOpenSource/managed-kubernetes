@@ -2,14 +2,24 @@
 
 RouteTable, SecurityGroup and Nodegroup resources have been fixed. InternetGateway has been added to AWS classic jet provider so I was able to use this one over preview.
 
-New issues found out,
-1. Duplicate resource for FargateProfile:
-    Impact: FargateProfile is commented out in eks jet composition.
+New issues found out:
+1. Duplicate resource for FargateProfile (Impact: FargateProfile is commented out in eks jet composition)
     - Crossplane Jet AWS [220](https://github.com/crossplane-contrib/provider-jet-aws/issues/220)
     - Hashicorp AWS [26021](https://github.com/hashicorp/terraform-provider-aws/issues/26021)
-1. No Kubeconfig secret created by AWS Jet Provider
-    Impact: Kubernetes and Helm providers are commented in eks jet composition.
+1. No Kubeconfig secret created by AWS Jet Provider (Impact: Kubernetes and Helm providers are commented in eks jet composition)
     - Crossplane Jet AWS [229](https://github.com/crossplane-contrib/provider-jet-aws/issues/229)
+
+
+## Closed issues found in release v3
+
+1. Lack of `InternetGateway` resource in Classic Jet version for AWS.
+   (Issue [183](https://github.com/crossplane-contrib/provider-jet-aws/issues/183)).
+2. RouteTable - no sync
+   (Issue [184](https://github.com/crossplane-contrib/provider-jet-aws/issues/184), PR [197](https://github.com/crossplane-contrib/provider-jet-aws/pull/197))
+3. NodeGroup - unable to create resource
+   (Issue [187](https://github.com/crossplane-contrib/provider-jet-aws/issues/187)), PR [201](https://github.com/crossplane-contrib/provider-jet-aws/pull/201)
+4. SecurityGroup - no sync
+   (Issue [157](https://github.com/crossplane-contrib/provider-jet-aws/issues/157), PR [198](https://github.com/crossplane-contrib/provider-jet-aws/pull/198))
 
 # Multi-cloud Managed Kubernetes
 
@@ -457,13 +467,3 @@ by automatically forking the project and prompting to send a pull request too.
 [fork]: https://help.github.com/articles/fork-a-repo/
 [branch]: https://help.github.com/articles/creating-and-deleting-branches-within-your-repository
 [pr]: https://help.github.com/articles/using-pull-requests/
-
-## Closed issues found in release v3
-
-1. Lack of `InternetGateway` resource in Classic Jet version for AWS. (GitHub Issue [183](https://github.com/crossplane-contrib/provider-jet-aws/issues/183)).
-2. RouteTable - no sync
-   (Issue [184](https://github.com/crossplane-contrib/provider-jet-aws/issues/184), PR [197](https://github.com/crossplane-contrib/provider-jet-aws/pull/197))
-3. NodeGroup - unable to create resource
-   (Issue [187](https://github.com/crossplane-contrib/provider-jet-aws/issues/187)), PR [201](https://github.com/crossplane-contrib/provider-jet-aws/pull/201)
-4. SecurityGroup - no sync
-   (Issue [157](https://github.com/crossplane-contrib/provider-jet-aws/issues/157), PR [198](https://github.com/crossplane-contrib/provider-jet-aws/pull/198))
