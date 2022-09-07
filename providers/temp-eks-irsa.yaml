@@ -1,0 +1,42 @@
+SERVICE_ACCOUNT=$(kubectl get providers.pkg.crossplane.io aws-jet-provider -o jsonpath="{.status.currentRevision}")
+OIDC_PROVIDER=$(aws eks describe-cluster --name $EKS_CLUSTER_NAME --region $AWS_REGION --query "cluster.identity.oidc.issuer" --output text | sed -e "s/^https:\/\///")
+
+read -r -d '' TRUST_RELATIONSHIP <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::${AWS_ACCOUNT_ID}:oidc-provider/${OIDC_PROVIDER}"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "${OIDC_PROVIDER}:sub": "system:serviceaccount:crossplane-system:${SERVICE_ACCOUNT_NAME}"
+        }
+      }
+    }
+  ]
+}
+EOF
+echo "${TRUST_RELATIONSHIP}" > trust.json
+
+aws iam create-role \
+    --role-name "${IAM_ROLE_NAME}" \
+    --assume-role-policy-document file://trust.json \
+    --description "IAM role for Crossplane provider-aws"
+
+aws iam attach-role-policy --role-name "${IAM_ROLE_NAME}" --policy-arn=arn:aws:iam::aws:policy/AdministratorAccess
+
+rm trust.json
+
+cat <<EOF | kubectl apply -f -
+apiVersion: aws.crossplane.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: aws-provider
+spec:
+  credentials:
+    source: InjectedIdentity
+EOF

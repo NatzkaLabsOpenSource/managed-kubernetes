@@ -1,0 +1,112 @@
+apiVersion: iam.aws.jet.crossplane.io/v1alpha2
+kind: Role
+metadata:
+  name: sample-eks-cluster
+spec:
+  forProvider:
+    assumeRolePolicy: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "eks.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+          }
+        ]
+      }
+  providerConfigRef:
+    name: aws-jet-provider
+---
+apiVersion: iam.aws.jet.crossplane.io/v1alpha2
+kind: RolePolicyAttachment
+metadata:
+  name: sample-cluster-policy-1
+spec:
+  forProvider:
+    policyArn: arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+    roleRef:
+      name: sample-eks-cluster
+  providerConfigRef:
+    name: aws-jet-provider
+---
+apiVersion: iam.aws.jet.crossplane.io/v1alpha2
+kind: RolePolicyAttachment
+metadata:
+  name: sample-cluster-policy-2
+spec:
+  forProvider:
+    policyArn: arn:aws:iam::aws:policy/AmazonEKSServicePolicy
+    roleRef:
+      name: sample-eks-cluster
+  providerConfigRef:
+    name: aws-jet-provider
+---
+apiVersion: ec2.aws.jet.crossplane.io/v1alpha2
+kind: VPC
+metadata:
+  name: sample-vpc
+spec:
+  forProvider:
+    region: eu-west-1
+    cidrBlock: 10.0.0.0/16
+    tags:
+      Name: sample-vpc
+  providerConfigRef:
+    name: aws-jet-provider
+---
+apiVersion: ec2.aws.jet.crossplane.io/v1alpha2
+kind: Subnet
+metadata:
+  name: sample-subnet1
+spec:
+  forProvider:
+    region: eu-west-1
+    availabilityZone: eu-west-1b
+    vpcIdRef:
+      name: sample-vpc
+    cidrBlock: 10.0.0.0/24
+    tags:
+      Name: eks-snet
+  providerConfigRef:
+    name: aws-jet-provider
+---
+apiVersion: ec2.aws.jet.crossplane.io/v1alpha2
+kind: Subnet
+metadata:
+  name: sample-subnet2
+spec:
+  forProvider:
+    region: eu-west-1
+    availabilityZone: eu-west-1a
+    vpcIdRef:
+      name: sample-vpc
+    cidrBlock: 10.0.1.0/24
+    tags:
+      Name: eks-snet
+  providerConfigRef:
+    name: aws-jet-provider
+---
+apiVersion: eks.aws.jet.crossplane.io/v1alpha2
+kind: Cluster
+metadata:
+  name: sample-eks-cluster
+  labels:
+    example: "true"
+spec:
+  forProvider:
+    region: eu-west-1
+    version: "1.21"
+    roleArnRef:
+      name: sample-eks-cluster
+    vpcConfig:
+      - subnetIdRefs:
+          - name: sample-subnet1
+          - name: sample-subnet2
+  providerConfigRef:
+    name: aws-jet-provider
+  writeConnectionSecretToRef:
+    name: cluster-conn
+    namespace: default

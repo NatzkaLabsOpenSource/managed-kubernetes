@@ -10,13 +10,13 @@ spec:
   compositionSelector:
     matchLabels:
       cluster: aks
-      provider: classic      
+      provider: classic
   parameters:
-    version: "1.21.7"
+    version: "1.22.11"
     # nodeSize: small
     # nodeCount: 3
     # region:  use1
     # region: eus
-    region: eus
+    region: euw1
   writeConnectionSecretToRef:
     name: xpaks

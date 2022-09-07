@@ -15,9 +15,9 @@ metadata:
           path: ".spec.id"
           title: Cluster ID
           description: Cluster ID that other objects refer to
-          validation: 
+          validation:
           - required: true
-            customeError: Cluster ID is required 
+            customeError: Cluster ID is required
         - name: type
           controlType: singleSelect
           path: ".spec.compositionRef.name"
@@ -29,7 +29,7 @@ metadata:
           - aks
           validation:
           - required: true
-            customError: Cluster type is required.  
+            customError: Cluster type is required.
       - title: Node Group
         description: Information about Node Group
         items:
@@ -41,7 +41,7 @@ metadata:
           description: Supported by provider Kubernetes version
           validation:
           - required: true
-            customError: Kubernetes version type is required.  
+            customError: Kubernetes version type is required.
         - name: region
           controlType: singleSelect
           path: ".spec.parameters.region"
@@ -71,7 +71,7 @@ metadata:
           - apse3
           default: use1
           validation:
-          - required: false 
+          - required: false
         - name: nodeSize
           controlType: singleSelect
           path: ".spec.parameters.nodeSize"
@@ -94,7 +94,7 @@ metadata:
           validation:
           - minimum: 1
           - maximum: 10
-          - required: false  
+          - required: false
 spec:
   connectionSecretKeys:
   - kubeconfig
@@ -130,7 +130,7 @@ spec:
                   region:
                     description: Cloud region for provisioned resources
                     type: string
-                    default: use1 
+                    default: use1
                   nodeSize:
                     description: The node's size; supported; small, medium, large
                     type: string
@@ -139,7 +139,7 @@ spec:
                     description: The desired number of nodes
                     type: integer
                     default: 1
-                  fargateNamespace: 
+                  fargateNamespace:
                     description: The Namespace for Fargate Profile
                     type: string
                     default: default
@@ -163,9 +163,9 @@ spec:
               fargateProfileStatus:
                 description: The Fargate Profile status
                 type: string
-              gatewayid:
-                description: dummy to get InternetGatewayID and patch it to RouteTable
-                type: string                
+              # gatewayid:
+              #   description: dummy to get InternetGatewayID and patch it to RouteTable
+              #   type: string
     additionalPrinterColumns:
     - name: clusterName
       type: string
@@ -178,4 +178,4 @@ spec:
       jsonPath: ".status.nodePoolStatus"
     - name: fargateProfile
       type: string
-      jsonPath: ".status.fargateProfileStatus"   
+      jsonPath: ".status.fargateProfileStatus"
