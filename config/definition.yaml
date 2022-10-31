@@ -15,9 +15,9 @@ metadata:
           path: ".spec.id"
           title: Cluster ID
           description: Cluster ID that other objects refer to
-          validation: 
+          validation:
           - required: true
-            customeError: Cluster ID is required 
+            customError: Cluster ID is required
         - name: type
           controlType: singleSelect
           path: ".spec.compositionRef.name"
@@ -29,7 +29,7 @@ metadata:
           - aks
           validation:
           - required: true
-            customError: Cluster type is required.  
+            customError: Cluster type is required.
       - title: Node Group
         description: Information about Node Group
         items:
@@ -41,7 +41,37 @@ metadata:
           description: Supported by provider Kubernetes version
           validation:
           - required: true
-            customError: Kubernetes version type is required.  
+            customError: Kubernetes version type is required.
+        - name: region
+          controlType: singleSelect
+          path: ".spec.parameters.region"
+          title: Cloud Region
+          description: Cloud region for provisioned resources
+          enum:
+          - use1
+          - use2
+          - usw1
+          - usw2
+          - cac
+          - sae
+          - afs
+          - euc
+          - euw1
+          - euw2
+          - euw3
+          - eus
+          - eun
+          - ape
+          - aps1
+          - apne1
+          - apne2
+          - apne3
+          - apse1
+          - apse2
+          - apse3
+          default: use1
+          validation:
+          - required: false
         - name: nodeSize
           controlType: singleSelect
           path: ".spec.parameters.nodeSize"
@@ -63,8 +93,8 @@ metadata:
           default: 1
           validation:
           - minimum: 1
-          - maximum: 5
-          - required: false  
+          - maximum: 10
+          - required: false
 spec:
   connectionSecretKeys:
   - kubeconfig
@@ -99,6 +129,8 @@ spec:
                     type: string
                   region:
                     description: Cloud region for provisioned resources
+                    type: string
+                    default: use1
                   nodeSize:
                     description: The node's size; supported; small, medium, large
                     type: string
@@ -107,7 +139,7 @@ spec:
                     description: The desired number of nodes
                     type: integer
                     default: 1
-                  fargateNamespace: 
+                  fargateNamespace:
                     description: The Namespace for Fargate Profile
                     type: string
                     default: default
@@ -143,4 +175,4 @@ spec:
       jsonPath: ".status.nodePoolStatus"
     - name: fargateProfile
       type: string
-      jsonPath: ".status.fargateProfileStatus"   
+      jsonPath: ".status.fargateProfileStatus"

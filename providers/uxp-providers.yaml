@@ -2,20 +2,20 @@
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
-  name: aws-provider
+  name: aws-uxp-provider
 spec:
-  package: registry.upbound.io/crossplane/provider-aws:v0.23.0 
+  package: xpkg.upbound.io/upbound/provider-aws:v0.18.0
 ---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
-  name: azure-provider
+  name: azure-uxp-provider
 spec:
-  package: registry.upbound.io/crossplane/provider-azure:v0.18.1
+  package: xpkg.upbound.io/upbound/provider-azure:v0.17.0
 ---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
-  name: gcp-provider
+  name: gcp-uxp-provider
 spec:
-  package: registry.upbound.io/crossplane/provider-gcp:v0.19.0
+  package: xpkg.upbound.io/upbound/provider-gcp:v0.16.0

@@ -1,0 +1,12 @@
+---
+apiVersion: s3.aws.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  name: uxp-aws-bucket
+spec:
+  forProvider:
+    region: eu-west-1
+    tags:
+      provisioner: uxp
+  providerConfigRef:
+    name: aws-uxp-provider

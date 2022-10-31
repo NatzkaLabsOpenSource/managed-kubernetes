@@ -1,0 +1,13 @@
+---
+apiVersion: ec2.aws.upbound.io/v1beta1
+kind: VPC
+metadata:
+  name: uxp-sample-vpc
+spec:
+  forProvider:
+    region: eu-west-1
+    cidrBlock: 10.0.0.0/16
+    tags:
+      provisioner: uxp
+  providerConfigRef:
+    name: aws-uxp-provider
