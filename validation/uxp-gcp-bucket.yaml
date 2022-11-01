@@ -1,0 +1,12 @@
+---
+apiVersion: storage.gcp.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  name: uxp-gcp-bucket
+spec:
+  forProvider:
+    location: europe-west2
+    labels:
+      provisioner: uxp
+  providerConfigRef:
+    name: gcp-uxp-provider

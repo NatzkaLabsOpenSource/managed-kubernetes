@@ -1,53 +1,67 @@
-# What's new in 3.1
+# What's new in Version 3.2
 
-RouteTable, SecurityGroup and Nodegroup resources have been fixed. InternetGateway has been added to AWS classic jet provider so I was able to use this one over preview.
+Added support for official providers maintained by upbound.
 
-New issues found out:
-1. Duplicate resource for FargateProfile (Impact: FargateProfile is commented out in eks jet composition)
-    - Crossplane Jet AWS [220](https://github.com/crossplane-contrib/provider-jet-aws/issues/220)
-    - Hashicorp AWS [26021](https://github.com/hashicorp/terraform-provider-aws/issues/26021)
-1. No Kubeconfig secret created by AWS Jet Provider (Impact: Kubernetes and Helm providers are commented in eks jet composition)
-    - Crossplane Jet AWS [229](https://github.com/crossplane-contrib/provider-jet-aws/issues/229)
-
-
-## Closed issues found in release v3
-
-1. Lack of `InternetGateway` resource in Classic Jet version for AWS.
-   (Issue [183](https://github.com/crossplane-contrib/provider-jet-aws/issues/183)).
-2. RouteTable - no sync
-   (Issue [184](https://github.com/crossplane-contrib/provider-jet-aws/issues/184), PR [197](https://github.com/crossplane-contrib/provider-jet-aws/pull/197))
-3. NodeGroup - unable to create resource
-   (Issue [187](https://github.com/crossplane-contrib/provider-jet-aws/issues/187)), PR [201](https://github.com/crossplane-contrib/provider-jet-aws/pull/201)
-4. SecurityGroup - no sync
-   (Issue [157](https://github.com/crossplane-contrib/provider-jet-aws/issues/157), PR [198](https://github.com/crossplane-contrib/provider-jet-aws/pull/198))
-
-# Multi-cloud Managed Kubernetes
+# Scope
 
 This project was created to build managed Kubernetes `Composite Resource` (XR) with
-compositions across multiple cloud providers. You can use it as a foundation to understand, build
+compositions supporting three main cloud providers. You can use it as a foundation to understand, build
 and operate managed Kubernetes Platform in the Cloud.
-This repository uses both upstream ([Crossplane (XP)](https://crossplane.io/)) and its downstream version ([Upbound Universal Crossplane (UXP)](https://www.upbound.io/products/uxp)).
-Compositions use for cloud provisioning both Native(Classic) and Jet Crossplane Providers for AWS, Azure and GCP.
-Post Provisioning using Helm and Kubernetes Providers.
+This repository uses two crossplane distributions:
+[XP  - Crossplane](https://crossplane.io/) - upstream project
+[UXP - Upbound Universal Crossplane](https://docs.upbound.io/uxp/) - downstram distribution of crossplane maintained by Upbound
 
-## Classic/Native Providers
-* [AWS Provider](https://doc.crds.dev/github.com/crossplane/provider-aws)
-* [Azure Provider](https://doc.crds.dev/github.com/crossplane/provider-azure)
-* [GCP Provider](https://doc.crds.dev/github.com/crossplane/provider-gcp)
+Each XR can have one or more compositions. Each composition describes how XR should be created
+by defining provider package and list od resources which build XR (Managed Resources).
+This allows a Composition to act as a class of service. In this project we build managed-kubernetes
+as a XR. To be able to build managed kubernetes cluster for all three main cloud providers
+we have to define three compositions to build AKS, EKS and GKE.
+
+# Providers APIs
+
+Providers are Crossplane packages allowing provision the respective infrastructure.
+They differ between themselves by number of supported cloud resources (CRDs), written programming language
+and maintenance model.
+At that moment we can use three different cloud providers to build the composition:
+- Classic (Native) - maintained by XP community, the fastest one, written in Go with limited resource coverage.
+- Jet - maintained by XP community, based on Terraform, available in two packages one with similar coverage as
+  classic provider and one with -preview suffix with full resource coverage.
+- Official - maintained by Upbound, the newest one based on Upjet, with coverage between Native and Jet-preview.
+
+To give you an idea about current coverage state, based on AWS provider:
+* [classic 171 CRDs](https://doc.crds.dev/github.com/crossplane/provider-aws@v0.33.0)
+* [jet 99 CRDs](https://doc.crds.dev/github.com/crossplane-contrib/provider-jet-aws@v0.5.0)
+* [jet-preview 780 CRDs](https://doc.crds.dev/github.com/crossplane-contrib/provider-jet-aws@v0.5.0-preview)
+* [official 364 CRDs](https://doc.crds.dev/github.com/upbound/provider-aws@v0.18.0)
+
+## Classic Providers
+
+* [AWS Classic](https://doc.crds.dev/github.com/crossplane/provider-aws)
+* [Azure Classic](https://doc.crds.dev/github.com/crossplane/provider-azure)
+* [GCP Classic](https://doc.crds.dev/github.com/crossplane/provider-gcp)
 
 ## Jet Providers
 
-Two different jet provider versions are available:
-- Classic jet with support for limited number of the most important resources
-- Preview jet supporting all cloud resources at least those supported by Terraform
+All resources which are needed to provision managed Kubernetes cluster are defined in smaller
+jet provider, so no need to install much bigger with -preview suffix.
 
-For this repository I used classic jet providers as they cover all resources needed to create managed Kubernetes resources.
+* [AWS Jet](https://doc.crds.dev/github.com/crossplane-contrib/provider-jet-aws)
+* [Azure Jet](https://doc.crds.dev/github.com/crossplane-contrib/provider-jet-azure)
+* [GCP Jet](https://doc.crds.dev/github.com/crossplane-contrib/provider-jet-gcp)
 
-* [AWS Provider](https://doc.crds.dev/github.com/crossplane-contrib/provider-jet-aws)
-* [Azure Provider](https://doc.crds.dev/github.com/crossplane-contrib/provider-jet-azure)
-* [GCP Provider](https://doc.crds.dev/github.com/crossplane-contrib/provider-jet-gcp)
+## Official providers
+
+* [AWS Official](https://doc.crds.dev/github.com/upbound/provider-aws)
+* [Azure Official](https://doc.crds.dev/github.com/upbound/provider-azure)
+* [GCP Official](https://doc.crds.dev/github.com/upbound/provider-gcp)
+
+Alternatively you can use for API Upbound marketplace example for AWS:
+* [AWS](https://marketplace.upbound.io/providers/upbound/provider-aws/v0.18.0/resources/eks.aws.upbound.io/Cluster/v1beta1)
 
 ## Other Providers
+
+Post Provisioning use Helm and Kubernetes Providers.
+
 * [Helm](https://doc.crds.dev/github.com/crossplane-contrib/provider-helm)
 * [Kubernetes](https://doc.crds.dev/github.com/crossplane-contrib/provider-kubernetes)
 
@@ -79,40 +93,33 @@ helm upgrade --install \
 - Verify status
 ```
 helm list -n crossplane-system
-
 kubectl get all -n crossplane-system
 ```
 
 #### Configure UXP
-- Install UXP cli
+- Install UP Command-Line
+`brew install upbound/tap/up`
 - Install UXP
-- Configure profile
-- Connect to Upbound Cloud
+`up uxp install`
+- Verify status
+`kubectl get pods -n upbound-system`
 
 ### Install providers
-
-Regular Jet perovider for AWS 0v.4.2 does not support InternetGateway.
-To build EKS cluster using jet provider preview version has to be used.
-At that moment installing preview version with other providers is failing due to
-big number of CRDs. (1119)
-For this reason I recommend to set up AWS jet provider alone in K8s
 
    ```console
    # UXP                              
    kubectl apply -f providers/uxp-providers.yaml              
-   # XP Classic
+   # XP Native
    kubectl apply -f providers/xp-providers.yaml
-   # XP Jet Classic
+   # XP Jet
    kubectl apply -f providers/jet-providers.yaml
    # XP Service
    kubectl apply -f providers/service-providers.yaml
 
-   kubectl get providers.pkg
+   kubectl get provider
    ```
 ### Setup Cloud Credentials
-   - [IAM User](https://crossplane.io/docs/v1.6/cloud-providers/aws/aws-provider.html) for AWS
-   - [Service Principal](https://crossplane.io/docs/v1.6/cloud-providers/azure/azure-provider.html) for Azure
-   - [Service Account](https://crossplane.io/docs/v1.6/cloud-providers/gcp/gcp-provider.html) for GCP  
+   - [Prepare cloud credentials](https://crossplane.io/docs/v1.9/reference/configure.html)
 
 As an output of above setup you should get three credentials files with following content.
 - aws-cred.conf
@@ -174,29 +181,66 @@ We need to set up two environment variables:
 #### AWS Provider
 
 ```console
-BASE64ENCODED_AWS_ACCOUNT_CREDS=$(base64 aws-cred.conf | tr -d "\n")
+# XP
 PROVIDER_SECRET_NAMESPACE=crossplane-system
+# UXP
+PROVIDER_SECRET_NAMESPACE=upbound-system
+
+BASE64ENCODED_AWS_ACCOUNT_CREDS=$(base64 aws-cred.conf | tr -d "\n")
 eval "echo \"$(cat providers/secret-aws-provider.yaml)\"" | kubectl apply -f -
+
 # Classic Provider
 eval "echo \"$(cat providers/aws-provider.yaml)\"" | kubectl apply -f -
 kubectl get providerconfig.aws.crossplane.io
+
 # Jet Provider
 eval "echo \"$(cat providers/jet-aws-provider.yaml)\"" | kubectl apply -f -
 kubectl get providerconfig.aws.jet.crossplane.io
+
+# Official Provider
+eval "echo \"$(cat providers/uxp-aws-providerconfig.yaml)\"" | kubectl apply -f -
+kubectl get providerconfig
+# Validation
+kubectl apply -f validation/uxp-aws-bucket.yaml
+# UXP validation (Until True/True)
+kubectl get Bucket.s3.aws.upbound.io -w
+# AWS Validation using cmd (alternatively console UI)
+aws s3 ls --profile dev --output table
+
+kubectl delete Bucket.s3.aws.upbound.io uxp-aws-bucket
 ```
 
 #### Azure Provider
 
 ```console
-BASE64ENCODED_AZURE_ACCOUNT_CREDS=$(base64 azure-cred.json | tr -d "\n")
+# XP
 PROVIDER_SECRET_NAMESPACE=crossplane-system
+# UXP
+PROVIDER_SECRET_NAMESPACE=upbound-system
+
+BASE64ENCODED_AZURE_ACCOUNT_CREDS=$(base64 azure-cred.json | tr -d "\n")
 eval "echo \"$(cat providers/secret-azure-provider.yaml)\"" | kubectl apply -f -
+
 # Classic Provider
 eval "echo \"$(cat providers/azure-provider.yaml)\"" | kubectl apply -f -
 kubectl get providerconfig.azure.crossplane.io
+
 # Jet Provider
 eval "echo \"$(cat providers/jet-azure-provider.yaml)\"" | kubectl apply -f -
 kubectl get providerconfig.azure.jet.crossplane.io
+
+# Official Provider
+eval "echo \"$(cat providers/uxp-azure-providerconfig.yaml)\"" | kubectl apply -f -
+kubectl get providerconfig
+# Validation
+kubectl apply -f validation/uxp-azure-bucket.yaml
+# UXP validation (Until True/True)
+kubectl get account.storage.azure.upbound.io/uxpazurebucket007 -w
+# Azure Validation using cmd (alternatively console UI)
+az group show --resource-group uxp-azure-rg -o table
+az storage account show -g uxp-azure-rg -n uxpazurebucket007 -o table
+
+kubectl delete -f validation/uxp-azure-bucket.yaml
 ```
 
 #### GCP Provider
@@ -204,16 +248,34 @@ kubectl get providerconfig.azure.jet.crossplane.io
 For GCP we need additionally third environment variable: project ID.
 
 ```console
+# XP
+PROVIDER_SECRET_NAMESPACE=crossplane-system
+# UXP
+PROVIDER_SECRET_NAMESPACE=upbound-system
+
 PROJECT_ID=$(gcloud projects list --filter='NAME:<Project Name>' --format="value(PROJECT_ID.scope())")
 BASE64ENCODED_GCP_PROVIDER_CREDS=$(base64 gcp-cred.json | tr -d "\n")
-PROVIDER_SECRET_NAMESPACE=crossplane-system
 eval "echo \"$(cat providers/secret-gcp-provider.yaml)\"" | kubectl apply -f -
+
 # Classic Provider
 eval "echo \"$(cat providers/gcp-provider.yaml)\"" | kubectl apply -f -
 kubectl get providerconfig.gcp.crossplane.io
+
 # Jet Provider
 eval "echo \"$(cat providers/jet-gcp-provider.yaml)\"" | kubectl apply -f -
 kubectl get providerconfig.gcp.jet.crossplane.io
+
+# Official Provider
+eval "echo \"$(cat providers/uxp-gcp-providerconfig.yaml)\"" | kubectl apply -f -
+kubectl get providerconfig
+# Validation
+kubectl apply -f validation/uxp-gcp-bucket.yaml
+# UXP validation (Until True/True)
+kubectl get Bucket.storage.gcp.upbound.io
+# GCP Validation using cmd (alternatively console UI)
+gsutil ls -p <PROJECT_ID>
+
+kubectl delete Bucket.storage.gcp.upbound.io uxp-gcp-bucket
 ```
 
 #### Clean-up
@@ -235,12 +297,20 @@ Platform team creates compositions and composite resource definitions (XRDs) to 
 managed kubernetes services infrastructure in cloud.
 
 ```console
-# UXP: CONFIG=config, XP: CONFIG=config-xp                                           
-kubectl apply -f $CONFIG/definition.yaml
-kubectl apply -f $CONFIG/eks-composition.yaml
-kubectl apply -f $CONFIG/aks-composition.yaml
-kubectl apply -f $CONFIG/gke-composition.yaml
-kubectl apply -f $CONFIG/jet-eks-composition.yaml
+kubectl apply -f config/definition.yaml
+
+# Compositions using Classic provider
+kubectl apply -f config/eks-composition.yaml
+kubectl apply -f config/aks-composition.yaml
+kubectl apply -f config/gke-composition.yaml
+
+# Compositions using Jet provider
+kubectl apply -f config/jet-eks-composition.yaml
+kubectl apply -f config/jet-aks-composition.yaml
+kubectl apply -f config/jet-gke-composition.yaml
+
+# Compositions using Official provider
+kubectl apply -f config/uxp-eks-composition.yaml
 kubectl apply -f $CONFIG/jet-aks-composition.yaml
 kubectl apply -f $CONFIG/jet-gke-composition.yaml
 ```
@@ -251,13 +321,22 @@ App team provisions infrastructure by creating claim objects for the XRDs define
 
 ```console
 kubectl create ns managed
-# UXP: CLAIMS=claims, XP: CLAIMS=claims-xp
-kubectl apply -f $CLAIMS/eks-claim.yaml
+
+# Claims using classic provider
+kubectl apply -f claims/eks-claim.yaml
+kubectl apply -f claims/aks-claim.yaml
+kubectl apply -f claims/gke-claim.yaml
+
+# Claims using jet provider
+kubectl apply -f claims/jet-eks-claim.yaml
+kubectl apply -f claims/jet-aks-claim.yaml
+kubectl apply -f claims/jet-gke-claim.yaml
+
+# Claims using official provider
+kubectl apply -f claims/uxp-eks-claim.yaml
 kubectl apply -f $CLAIMS/aks-claim.yaml
 kubectl apply -f $CLAIMS/gke-claim.yaml
-kubectl apply -f $CLAIMS/jet-eks-claim.yaml
-kubectl apply -f $CLAIMS/jet-aks-claim.yaml
-kubectl apply -f $CLAIMS/jet-gke-claim.yaml
+
 ```
 
 #### Verifying Infrastructure status
@@ -359,15 +438,21 @@ kubectl delete provider.pkg kubernetes-provider
 
 ## Troubleshooting
 
+### Removing resources manually
+
+```
+kubectl patch --type json --patch='[ { "op": "remove", "path": "/metadata/finalizers" } ]' subnet.ec2.aws.upbound.io/uxpeks-pub-b
+```
+
 ### Compositions
 
 ```
 kubectl get xmanagedcluster
 
-NAME          CLUSTERNAME   CONTROLPLANE   NODEPOOL    FARGATEPROFILE   READY   COMPOSITION   AGE
-xpaks-72lq5   xpaks         Succeeded      Succeeded   NA4-xpaks        True    aks           25h
-xpeks-5zxn6   xpeks         ACTIVE         ACTIVE      ACTIVE           True    eks           24h
-xpgke-w29h6   xpgke         RUNNING        RUNNING     NA4-xpgke        True    gke           23h
+NAME     CLUSTERNAME   CONTROLPLANE   NODEPOOL   FARGATEPROFILE   READY   CONNECTION-SECRET   AGE
+uxpeks   uxpeks        ACTIVE         ACTIVE     ACTIVE           True    uxpeks              4d4h
+uxpaks   uxpaks        True           True       NA4-uxpaks       True    uxpaks              4d
+uxpgke   uxpgke        True           True       NA4-uxpgke       True    uxpgke              2d16h
 
 # To find our which resource have issues within Composite resource:
 kubectl describe xmanagedcluster xpeks-5zxn6
@@ -392,6 +477,37 @@ kubectl get managed
 kubectl get aws
 kubectl get azure
 kubectl get gcp
+```
+If above commands do not work you can use below one, examples for Official providers:
+```
+# AKS
+kubectl get ResourceGroup.azure.upbound.io\
+,VirtualNetwork.network.azure.upbound.io\
+,Subnet.network.azure.upbound.io\
+,KubernetesCluster.containerservice.azure.upbound.io\
+,KubernetesClusterNodePool.containerservice.azure.upbound.io
+
+
+# EKS
+kubectl get Cluster.eks.aws.upbound.io\
+,FargateProfile.eks.aws.upbound.io\
+,Nodegroup.eks.aws.upbound.io\
+,RouteTableAssociation.ec2.aws.upbound.io\
+,Route.ec2.aws.upbound.io\
+,Routetable.ec2.aws.upbound.io\
+,InternetGateway.ec2.aws.upbound.io\
+,Subnet.ec2.aws.upbound.io\
+,SecurityGroupRule.ec2.aws.upbound.io\
+,SecurityGroup.ec2.aws.upbound.io\
+,VPC.ec2.aws.upbound.io\
+,RolePolicyAttachment.iam.aws.upbound.io\
+,Role.iam.aws.upbound.io
+
+# GKE
+kubectl get Network.compute.gcp.upbound.io\
+,Subnetwork.compute.gcp.upbound.io\
+,Cluster.container.gcp.upbound.io\
+,NodePool.container.gcp.upbound.io
 ```
 
 ## Supported Kubernetes Cluster properties
@@ -467,3 +583,33 @@ by automatically forking the project and prompting to send a pull request too.
 [fork]: https://help.github.com/articles/fork-a-repo/
 [branch]: https://help.github.com/articles/creating-and-deleting-branches-within-your-repository
 [pr]: https://help.github.com/articles/using-pull-requests/
+
+## Issues
+
+# Release v3.1
+
+RouteTable, SecurityGroup and Nodegroup resources have been fixed. InternetGateway has been added to AWS classic jet provider so I was able to use this one over preview.
+
+New issues found out:
+1. Duplicate resource for FargateProfile (Impact: FargateProfile is commented out in eks jet composition)
+    - Crossplane Jet AWS [220](https://github.com/crossplane-contrib/provider-jet-aws/issues/220)
+    - Hashicorp AWS [26021](https://github.com/hashicorp/terraform-provider-aws/issues/26021)
+   Status: Open
+1. No Kubeconfig secret created by AWS Jet Provider (Impact: Kubernetes and Helm providers are commented in eks jet composition)
+    - Crossplane Jet AWS [229](https://github.com/crossplane-contrib/provider-jet-aws/issues/229)
+   Status: Open
+
+### Release v3
+
+1. Lack of `InternetGateway` resource in Classic Jet version for AWS.
+   (Issue [183](https://github.com/crossplane-contrib/provider-jet-aws/issues/183)).
+   Status: Fixed => Resource has been added to Classic Jet provider
+2. RouteTable - no sync
+   (Issue [184](https://github.com/crossplane-contrib/provider-jet-aws/issues/184), PR [197](https://github.com/crossplane-contrib/provider-jet-aws/pull/197))
+   Status: Fixed
+3. NodeGroup - unable to create resource
+   (Issue [187](https://github.com/crossplane-contrib/provider-jet-aws/issues/187)), PR [201](https://github.com/crossplane-contrib/provider-jet-aws/pull/201)
+   Status: Fixed
+4. SecurityGroup - no sync
+   (Issue [157](https://github.com/crossplane-contrib/provider-jet-aws/issues/157), PR [198](https://github.com/crossplane-contrib/provider-jet-aws/pull/198))
+   Status: Fixed

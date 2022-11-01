@@ -1,0 +1,285 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: official-gke
+  labels:
+    crossplane.io/xrd: xmanagedclusters.compositions.io
+    provider: official
+    cluster: gke
+spec:
+  compositeTypeRef:
+    apiVersion: compositions.io/v1alpha1
+    kind: XManagedCluster
+  writeConnectionSecretsToNamespace: upbound-system
+  patchSets:
+  - name: metadata
+    patches:
+    - fromFieldPath: metadata.labels
+  - name: region
+    patches:
+    - fromFieldPath: spec.parameters.region
+      toFieldPath: spec.forProvider.region
+      transforms:
+      - type: map
+        map:
+          use1: us-east4
+          use2: us-east1
+          usw1: us-west2
+          usw2: us-west1
+          cac: northamerica-northeast1
+          sae: southamerica-east1
+          afs: asia-east1
+          euc: europe-west3
+          euw1: europe-west4
+          euw2: europe-west2
+          euw3: europe-west1
+          eus: europe-west6
+          eun: europe-north1
+          ape: asia-east2
+          aps1: asia-south1
+          apne1: asia-northeast1
+          apne2: asia-northeast3
+          apne3: asia-northeast2
+          apse1: asia-southeast1
+          apse2: australia-southeast1
+          apse3: asia-southeast2
+  - name: location
+    patches:
+    - fromFieldPath: spec.parameters.region
+      toFieldPath: spec.forProvider.location
+      transforms:
+      - type: map
+        map:
+          use1: us-east4
+          use2: us-east1
+          usw1: us-west2
+          usw2: us-west1
+          cac: northamerica-northeast1
+          sae: southamerica-east1
+          afs: asia-east1
+          euc: europe-west3
+          euw1: europe-west4
+          euw2: europe-west2
+          euw3: europe-west1
+          eus: europe-west6
+          eun: europe-north1
+          ape: asia-east2
+          aps1: asia-south1
+          apne1: asia-northeast1
+          apne2: asia-northeast3
+          apne3: asia-northeast2
+          apse1: asia-southeast1
+          apse2: australia-southeast1
+          apse3: asia-southeast2
+
+  resources:
+  - name: compute-net
+    base:
+      apiVersion: compute.gcp.upbound.io/v1beta1
+      kind: Network
+      spec:
+        forProvider:
+          autoCreateSubnetworks: false
+          routingMode: REGIONAL
+        providerConfigRef:
+          name: gcp-uxp-provider
+    patches:
+    - type: PatchSet
+      patchSetName: metadata
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+
+  - name: compute-subnet
+    base:
+      apiVersion: compute.gcp.upbound.io/v1beta1
+      kind: Subnetwork
+      spec:
+        forProvider:
+          networkSelector:
+            matchControllerRef: true
+          privateIpGoogleAccess: true
+          ipCidrRange: 172.16.0.0/16
+          secondaryIpRange:
+          - rangeName: pods
+            ipCidrRange: 10.200.0.0/14
+          - rangeName: services
+            ipCidrRange: 10.204.0.0/16
+        providerConfigRef:
+          name: gcp-uxp-provider
+    patches:
+    - type: PatchSet
+      patchSetName: metadata
+    - type: PatchSet
+      patchSetName: region
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+
+  - name: gkecluster
+    base:
+      apiVersion: container.gcp.upbound.io/v1beta1
+      kind: Cluster
+      spec:
+        forProvider:
+          initialNodeCount: 1
+          removeDefaultNodePool: true
+          addonsConfig:
+          - gcpFilestoreCsiDriverConfig:
+            - enabled: true
+            networkPolicyConfig:
+            - disabled: false
+          ipAllocationPolicy:
+          - clusterSecondaryRangeName: pods
+            servicesSecondaryRangeName: services
+          networkPolicy:
+          - enabled: true
+          networkSelector:
+            matchControllerRef: true
+          enableIntraNodeVisibility: true
+          subnetworkSelector:
+            matchControllerRef: true
+          releaseChannel:
+          - channel: UNSPECIFIED
+        writeConnectionSecretToRef:
+          namespace: upbound-system
+        providerConfigRef:
+          name: gcp-uxp-provider
+    patches:
+    - type: PatchSet
+      patchSetName: metadata
+    - type: PatchSet
+      patchSetName: location
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+    - fromFieldPath: spec.id
+      toFieldPath: spec.forProvider.network
+    - fromFieldPath: spec.id
+      toFieldPath: spec.forProvider.subnetwork
+    - fromFieldPath: spec.parameters.version
+      toFieldPath: spec.forProvider.initialClusterVersion
+    - fromFieldPath: metadata.uid
+      toFieldPath: spec.writeConnectionSecretToRef.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-gkecluster"
+    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+    - type: ToCompositeFieldPath
+      fromFieldPath: metadata.name
+      toFieldPath: status.clusterName
+    - type: ToCompositeFieldPath
+      fromFieldPath: status.conditions[0].status
+      toFieldPath: status.controlPlaneStatus
+    - type: ToCompositeFieldPath
+      fromFieldPath: metadata.name
+      toFieldPath: status.fargateProfileStatus
+      transforms:
+      - type: string
+        string:
+          fmt: "NA4-%s"
+    connectionDetails:
+    - fromConnectionSecretKey: kubeconfig
+    readinessChecks:
+    - type: MatchString
+      fieldPath: "status.conditions[0].status"
+      matchString: "True"
+
+  - name: gkenode
+    base:
+      apiVersion: container.gcp.upbound.io/v1beta1
+      kind: NodePool
+      spec:
+        forProvider:
+          clusterSelector:
+            matchControllerRef: true
+          nodeConfig:
+          - oauthScopes:
+            - https://www.googleapis.com/auth/cloud-platform
+            - https://www.googleapis.com/auth/devstorage.read_only
+            - https://www.googleapis.com/auth/logging.write
+            - https://www.googleapis.com/auth/monitoring
+            - https://www.googleapis.com/auth/compute
+            shieldedInstanceConfig:
+            - enableIntegrityMonitoring: true
+              enableSecureBoot: true
+          autoscaling:
+          - maxNodeCount: 10
+          management:
+          - autoRepair: true
+            autoUpgrade: false
+        providerConfigRef:
+          name: gcp-uxp-provider
+    patches:
+    - type: PatchSet
+      patchSetName: metadata
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+    - fromFieldPath: spec.parameters.nodeCount
+      toFieldPath: spec.forProvider.autoscaling[0].minNodeCount
+    - fromFieldPath: spec.parameters.nodeCount
+      toFieldPath: spec.forProvider.initialNodeCount
+    - fromFieldPath: spec.parameters.nodeSize
+      toFieldPath: spec.forProvider.nodeConfig[0].machineType
+      transforms:
+      - type: map
+        map:
+          small: e2-standard-2
+          medium: e2-standard-4
+          large: e2-standard-16
+    - type: ToCompositeFieldPath
+      fromFieldPath: status.conditions[0].status
+      toFieldPath: status.nodePoolStatus
+    readinessChecks:
+    - type: MatchString
+      fieldPath: status.conditions[0].status
+      matchString: "True"
+
+  # - name: helm
+  #   base:
+  #       apiVersion: helm.crossplane.io/v1beta1
+  #       kind: ProviderConfig
+  #       spec:
+  #         credentials:
+  #           source: Secret
+  #           secretRef:
+  #             key: kubeconfig
+  #       identity:
+  #         type: GoogleApplicationCredentials
+  #         source: Secret
+  #         secretRef:
+  #           name: gcp-account-creds
+  #           key: credentials
+  #   patches:
+  #     - fromFieldPath: spec.id
+  #       toFieldPath: metadata.name
+  #     - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+  #       toFieldPath: spec.credentials.secretRef.namespace
+  #     - fromFieldPath: spec.id
+  #       toFieldPath: spec.credentials.secretRef.name
+  #       transforms:
+  #         - type: string
+  #           string:
+  #             fmt: "%s-gkecluster"
+  #   readinessChecks:
+  #     - type: None
+  # - name: helm-uxp
+  #   base:
+  #       apiVersion: helm.crossplane.io/v1beta1
+  #       kind: Release
+  #       spec:
+  #         rollbackLimit: 3
+  #         forProvider:
+  #           namespace: upbound-system
+  #           chart:
+  #             name: universal-crossplane
+  #             repository: https://charts.upbound.io/stable
+  #             version: "1.6.1-up.1"
+  #           values: {}
+  #   patches:
+  #   - fromFieldPath: spec.id
+  #     toFieldPath: metadata.name
+  #     transforms:
+  #       - type: string
+  #         string:
+  #           fmt: "%s-uxp"
+  #   - fromFieldPath: spec.id
+  #     toFieldPath: spec.providerConfigRef.name

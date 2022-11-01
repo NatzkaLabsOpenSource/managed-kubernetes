@@ -1,0 +1,12 @@
+---
+apiVersion: azure.upbound.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: azure-uxp-provider
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: ${PROVIDER_SECRET_NAMESPACE}
+      name: azure-account-creds
+      key: credentials

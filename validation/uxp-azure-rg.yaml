@@ -1,0 +1,12 @@
+---
+apiVersion: azure.upbound.io/v1beta1
+kind: ResourceGroup
+metadata:
+  name: uxp-example-rg
+spec:
+  forProvider:
+    location: "West Europe"
+    tags:
+      provisioner: uxp
+  providerConfigRef:
+    name: azure-uxp-provider

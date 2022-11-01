@@ -1,0 +1,31 @@
+---
+apiVersion: azure.upbound.io/v1beta1
+kind: ResourceGroup
+metadata:
+  name: uxp-azure-rg
+spec:
+  forProvider:
+    location: northeurope
+    tags:
+      provisioner: uxp
+  providerConfigRef:
+    name: azure-uxp-provider
+---
+apiVersion: storage.azure.upbound.io/v1beta1
+kind: Account
+metadata:
+  name: uxpazurebucket007
+spec:
+  forProvider:
+    accountReplicationType: LRS
+    accountTier: Standard
+    location: northeurope
+    resourceGroupNameRef:
+      name: uxp-azure-rg
+    tags:
+      provisioner: uxp
+  providerConfigRef:
+    name: azure-uxp-provider
+  writeConnectionSecretToRef:
+    name: uxp-azure-sa
+    namespace: upbound-system

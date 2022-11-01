@@ -1,0 +1,288 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: official-aks
+  labels:
+    crossplane.io/xrd: xmanagedclusters.compositions.io
+    provider: official
+    cluster: aks
+spec:
+  compositeTypeRef:
+    apiVersion: compositions.io/v1alpha1
+    kind: XManagedCluster
+  writeConnectionSecretsToNamespace: upbound-system
+  patchSets:
+  - name: metadata
+    patches:
+    - fromFieldPath: metadata.labels
+  - name: region
+    patches:
+    - fromFieldPath: spec.parameters.region
+      toFieldPath: spec.forProvider.location
+      transforms:
+      - type: map
+        map:
+          use1: eastus
+          use2: eastus2
+          usw1: westus
+          usw2: westus2
+          cac: canadacentral
+          sae: brazilsouth
+          afs: southafricanorth
+          euc: germanywestcentral
+          euw1: northeurope
+          euw2: uksouth
+          euw3: francecentral
+          eus: switzerlandnorth
+          eun: swedencentral
+          ape: eastasia
+          aps1: westindia
+          apne1: japaneast
+          apne2: koreacentral
+          apne3: japanwest
+          apse1: southeastasia
+          apse2: australiaeast
+          apse3: australiacentral
+
+  resources:
+  - name: rg
+    base:
+      apiVersion: azure.upbound.io/v1beta1
+      kind: ResourceGroup
+      spec:
+        providerConfigRef:
+          name: azure-uxp-provider
+    patches:
+    - type: PatchSet
+      patchSetName: metadata
+    - type: PatchSet
+      patchSetName: region
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "rg-%s"
+    - type: FromCompositeFieldPath
+      fromFieldPath: metadata.name
+      toFieldPath: metadata.labels.resourcegroup
+
+  - name: vnet
+    base:
+      apiVersion: network.azure.upbound.io/v1beta1
+      kind: VirtualNetwork
+      spec:
+        forProvider:
+          resourceGroupNameSelector:
+            matchControllerRef: true
+          addressSpace:
+          - 10.0.0.0/16
+        providerConfigRef:
+          name: azure-uxp-provider
+    patches:
+    - type: PatchSet
+      patchSetName: metadata
+    - type: PatchSet
+      patchSetName: region
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "vnet-%s"
+
+  - name: subnet
+    base:
+      apiVersion: network.azure.upbound.io/v1beta1
+      kind: Subnet
+      spec:
+        forProvider:
+          resourceGroupNameSelector:
+            matchControllerRef: true
+          virtualNetworkNameSelector:
+            matchControllerRef: true
+          addressPrefixes:
+          - 10.0.0.0/19
+        providerConfigRef:
+          name: azure-uxp-provider
+    patches:
+    - type: PatchSet
+      patchSetName: metadata
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "snet-%s"
+
+  - name: akscluster
+    base:
+      apiVersion: containerservice.azure.upbound.io/v1beta1
+      kind: KubernetesCluster
+      spec:
+        forProvider:
+          dnsPrefix: uxpjet
+          roleBasedAccessControlEnabled: true
+          resourceGroupNameSelector:
+            matchControllerRef: true
+          defaultNodePool:
+          - name: default
+            nodeCount: 1
+            vmSize: Standard_D2s_v3
+            vnetSubnetIDSelector:
+              matchControllerRef: true
+          identity:
+          - type: SystemAssigned
+        writeConnectionSecretToRef:
+          namespace: upbound-system
+        providerConfigRef:
+          name: azure-uxp-provider
+    patches:
+    - type: PatchSet
+      patchSetName: metadata
+    - type: PatchSet
+      patchSetName: region
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+    - fromFieldPath: spec.id
+      toFieldPath: spec.writeConnectionSecretToRef.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-akscluster"
+    - fromFieldPath: spec.parameters.version
+      toFieldPath: spec.forProvider.kubernetesVersion
+    # Values for default node group hardcoded
+    # - fromFieldPath: spec.id
+    #   toFieldPath: spec.forProvider.defaultNodePool[0].name
+    # - fromFieldPath: spec.parameters.nodeCount
+    #   toFieldPath: spec.forProvider.defaultNodePool[0].nodeCount
+    # - fromFieldPath: spec.parameters.nodeSize
+    #   toFieldPath: spec.forProvider.defaultNodePool[0].vmSize
+    #   transforms:
+    #   - type: map
+    #     map:
+    #       small: Standard_D2s_v3
+    #       medium: Standard_D4s_v3
+    #       large: Standard_D8s_v3
+    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+    - type: ToCompositeFieldPath
+      fromFieldPath: metadata.name
+      toFieldPath: status.clusterName
+    - type: ToCompositeFieldPath
+      fromFieldPath: status.conditions[0].status
+      toFieldPath: status.controlPlaneStatus
+    - type: ToCompositeFieldPath
+      fromFieldPath: metadata.name
+      toFieldPath: status.fargateProfileStatus
+      transforms:
+      - type: string
+        string:
+          fmt: "NA4-%s"
+    connectionDetails:
+    - fromConnectionSecretKey: kubeconfig
+    readinessChecks:
+    - type: MatchString
+      fieldPath: status.conditions[0].status
+      matchString: "True"
+
+  - name: aksnode
+    base:
+      apiVersion: containerservice.azure.upbound.io/v1beta1
+      kind: KubernetesClusterNodePool
+      spec:
+        forProvider:
+          kubernetesClusterIdSelector:
+            matchControllerRef: true
+          vnetSubnetIDSelector:
+            matchControllerRef: true
+        providerConfigRef:
+          name: azure-uxp-provider
+    patches:
+    - type: PatchSet
+      patchSetName: metadata
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+    - fromFieldPath: spec.parameters.nodeCount
+      toFieldPath: spec.forProvider.nodeCount
+    - fromFieldPath: spec.parameters.nodeSize
+      toFieldPath: spec.forProvider.vmSize
+      transforms:
+      - type: map
+        map:
+          small: Standard_D2s_v3
+          medium: Standard_D4s_v3
+          large: Standard_D8s_v3
+    - type: ToCompositeFieldPath
+      fromFieldPath: status.conditions[0].status
+      toFieldPath: status.nodePoolStatus
+    readinessChecks:
+    - type: MatchString
+      fieldPath: status.conditions[0].status
+      matchString: "True"
+
+  # - name: helm
+  #   base:
+  #       apiversion: helm.crossplane.io/v1beta1
+  #       kind: providerconfig
+  #       spec:
+  #         credentials:
+  #           source: secret
+  #           secretref:
+  #             key: kubeconfig
+  #   patches:
+  #     - fromfieldpath: spec.id
+  #       tofieldpath: metadata.name
+  #     - fromfieldpath: spec.writeconnectionsecrettoref.namespace
+  #       tofieldpath: spec.credentials.secretref.namespace
+  #     - fromfieldpath: spec.id
+  #       tofieldpath: spec.credentials.secretref.name
+  #       transforms:
+  #         - type: string
+  #           string:
+  #             fmt: "%s-akscluster"
+  #   readinesschecks:
+  #     - type: none
+  # - name: helm-uxp
+  #   base:
+  #       apiversion: helm.crossplane.io/v1beta1
+  #       kind: release
+  #       spec:
+  #         rollbacklimit: 3
+  #         forprovider:
+  #           namespace: upbound-system
+  #           chart:
+  #             name: universal-crossplane
+  #             repository: https://charts.upbound.io/stable
+  #             version: "1.6.1-up.1"
+  #           values: {}
+  #   patches:
+  #   - fromfieldpath: spec.id
+  #     tofieldpath: metadata.name
+  #     transforms:
+  #       - type: string
+  #         string:
+  #           fmt: "%s-uxp"
+  #   - fromfieldpath: spec.id
+  #     tofieldpath: spec.providerconfigref.name
+  # - name: crossplane
+  #   base:
+  #     apiversion: helm.crossplane.io/v1beta1
+  #     kind: release
+  #     spec:
+  #       rollbacklimit: 3
+  #       forprovider:
+  #         namespace: crossplane-system
+  #         chart:
+  #           name: crossplane
+  #           repository: https://charts.crossplane.io/stable
+  #           version: "1.5.0"
+  #   patches:
+  #   - fromfieldpath: spec.id
+  #     tofieldpath: metadata.name
+  #     transforms:
+  #       - type: string
+  #         string:
+  #           fmt: "%s-crossplane"
+  #   - fromfieldpath: spec.id
+  #     tofieldpath: spec.providerconfigref.name

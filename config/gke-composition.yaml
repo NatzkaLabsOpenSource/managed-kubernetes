@@ -4,17 +4,73 @@ metadata:
   name: gke
   labels:
     crossplane.io/xrd: xmanagedclusters.compositions.io
-    provider: gcp
+    provider: classic
     cluster: gke
 spec:
   compositeTypeRef:
     apiVersion: compositions.io/v1alpha1
     kind: XManagedCluster
-  writeConnectionSecretsToNamespace: upbound-system
+  writeConnectionSecretsToNamespace: crossplane-system
   patchSets:
   - name: metadata
     patches:
     - fromFieldPath: metadata.labels
+  - name: region
+    patches:
+    - fromFieldPath: spec.parameters.region
+      toFieldPath: spec.forProvider.region
+      transforms:
+      - type: map
+        map:
+          use1: us-east4
+          use2: us-east1
+          usw1: us-west2
+          usw2: us-west1 
+          cac: northamerica-northeast1
+          sae: southamerica-east1
+          afs: asia-east1
+          euc: europe-west3
+          euw1: europe-west4
+          euw2: europe-west2
+          euw3: europe-west1
+          eus: europe-west6
+          eun: europe-north1 
+          ape: asia-east2
+          aps1: asia-south1
+          apne1: asia-northeast1
+          apne2: asia-northeast3
+          apne3: asia-northeast2
+          apse1: asia-southeast1
+          apse2: australia-southeast1
+          apse3: asia-southeast2
+  - name: location
+    patches:
+    - fromFieldPath: spec.parameters.region
+      toFieldPath: spec.forProvider.location
+      transforms:
+      - type: map
+        map:
+          use1: us-east4
+          use2: us-east1
+          usw1: us-west2
+          usw2: us-west1 
+          cac: northamerica-northeast1
+          sae: southamerica-east1
+          afs: asia-east1
+          euc: europe-west3
+          euw1: europe-west4
+          euw2: europe-west2
+          euw3: europe-west1
+          eus: europe-west6
+          eun: europe-north1 
+          ape: asia-east2
+          aps1: asia-south1
+          apne1: asia-northeast1
+          apne2: asia-northeast3
+          apne3: asia-northeast2
+          apse1: asia-southeast1
+          apse2: australia-southeast1
+          apse3: asia-southeast2           
   resources:
   - name: compute-net
     base: 
@@ -38,7 +94,6 @@ spec:
       kind: Subnetwork
       spec:
         forProvider:
-          region: us-west2
           networkSelector:
             matchControllerRef: true
           privateIpGoogleAccess: true
@@ -53,9 +108,11 @@ spec:
     patches:
     - type: PatchSet
       patchSetName: metadata
+    - type: PatchSet
+      patchSetName: region
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
-  - name: gkecluster-uw2
+  - name: gkecluster
     base:
       apiVersion: container.gcp.crossplane.io/v1beta2
       kind: Cluster
@@ -64,7 +121,6 @@ spec:
           fargateProfile: "NOT-APPLICABLE"
       spec:
         forProvider:
-          location: us-west2
           addonsConfig:
             gcePersistentDiskCsiDriverConfig:
               enabled: true
@@ -90,12 +146,14 @@ spec:
           subnetworkSelector:
             matchControllerRef: true 
         writeConnectionSecretToRef:
-          namespace: upbound-system
+          namespace: crossplane-system
         providerConfigRef:
           name: gcp-provider        
     patches:
     - type: PatchSet
       patchSetName: metadata
+    - type: PatchSet
+      patchSetName: location
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
     - type: ToCompositeFieldPath
@@ -103,7 +161,7 @@ spec:
       toFieldPath: status.clusterName     
     - fromFieldPath: spec.parameters.version
       toFieldPath: spec.forProvider.initialClusterVersion
-    - fromFieldPath: metadata.uid
+    - fromFieldPath: spec.id
       toFieldPath: spec.writeConnectionSecretToRef.name
       transforms:
       - type: string
@@ -127,16 +185,12 @@ spec:
       fieldPath: "status.atProvider.status"
       matchString: "RUNNING"
 
-  - name: gkenode-uw2
+  - name: gkenode
     base:
       apiVersion: container.gcp.crossplane.io/v1beta1
       kind: NodePool
       spec:
         forProvider:
-          locations:
-          - us-west2-a
-          - us-west2-b
-          - us-west2-c
           clusterSelector:
             matchControllerRef: true
           config:
@@ -190,12 +244,12 @@ spec:
             source: Secret
             secretRef:
               key: kubeconfig
-        identity:
-          type: GoogleApplicationCredentials
-          source: Secret
-          secretRef:
-            name: gcp-account-creds
-            key: credentials   
+          identity:
+            type: GoogleApplicationCredentials
+            source: Secret
+            secretRef:
+              name: gcp-account-creds
+              key: credentials
     patches:
       - fromFieldPath: spec.id
         toFieldPath: metadata.name
@@ -207,27 +261,79 @@ spec:
           - type: string
             string:
               fmt: "%s-gkecluster"
+      - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+        toFieldPath: spec.identity.secretRef.namespace
     readinessChecks:
       - type: None
-  - name: helm-uxp
+  - name: helm-crossplane
     base:
         apiVersion: helm.crossplane.io/v1beta1
         kind: Release
         spec:
           rollbackLimit: 3
           forProvider:
-            namespace: upbound-system
+            namespace: crossplane-system
             chart:
-              name: universal-crossplane
-              repository: https://charts.upbound.io/stable
-              version: "1.6.1-up.1"
-            values: {}
+              name: crossplane
+              repository: https://charts.crossplane.io/stable
+              version: "1.6.3"
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
       transforms:
         - type: string
           string:
-            fmt: "%s-uxp"
+            fmt: "%s-crossplane"
     - fromFieldPath: spec.id
-      toFieldPath: spec.providerConfigRef.name  
+      toFieldPath: spec.providerConfigRef.name
+  - name: kubernetes
+    base:
+      apiVersion: kubernetes.crossplane.io/v1alpha1
+      kind: ProviderConfig
+      spec:
+        credentials:
+          source: Secret
+          secretRef:
+            key: kubeconfig
+        identity:
+          type: GoogleApplicationCredentials
+          source: Secret
+          secretRef:
+            namespace: crossplane-system
+            name: gcp-account-creds
+            key: credentials          
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+      toFieldPath: spec.credentials.secretRef.namespace
+    - fromFieldPath: spec.id
+      toFieldPath: spec.credentials.secretRef.name
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-gkecluster"
+    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+      toFieldPath: spec.identity.secretRef.namespace      
+    readinessChecks:
+      - type: None
+  - name: k8s-ns-prod
+    base:
+      apiVersion: kubernetes.crossplane.io/v1alpha1
+      kind: Object
+      spec:
+        forProvider:
+          manifest:
+            apiVersion: v1
+            kind: Namespace
+            metadata:
+              name: production
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-ns-prod"
+    - fromFieldPath: spec.id
+      toFieldPath: spec.providerConfigRef.name

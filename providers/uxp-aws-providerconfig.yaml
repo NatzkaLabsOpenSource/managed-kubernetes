@@ -1,0 +1,12 @@
+---
+apiVersion: aws.upbound.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: aws-uxp-provider
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: ${PROVIDER_SECRET_NAMESPACE}
+      name: aws-account-creds
+      key: credentials
