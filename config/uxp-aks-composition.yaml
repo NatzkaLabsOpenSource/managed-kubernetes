@@ -144,6 +144,10 @@ spec:
       patchSetName: region
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "cluster-%s"
     - fromFieldPath: spec.id
       toFieldPath: spec.writeConnectionSecretToRef.name
       transforms:
@@ -203,6 +207,10 @@ spec:
       patchSetName: metadata
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "ng0%s"
     - fromFieldPath: spec.parameters.nodeCount
       toFieldPath: spec.forProvider.nodeCount
     - fromFieldPath: spec.parameters.nodeSize
@@ -221,68 +229,89 @@ spec:
       fieldPath: status.conditions[0].status
       matchString: "True"
 
-  # - name: helm
-  #   base:
-  #       apiversion: helm.crossplane.io/v1beta1
-  #       kind: providerconfig
-  #       spec:
-  #         credentials:
-  #           source: secret
-  #           secretref:
-  #             key: kubeconfig
-  #   patches:
-  #     - fromfieldpath: spec.id
-  #       tofieldpath: metadata.name
-  #     - fromfieldpath: spec.writeconnectionsecrettoref.namespace
-  #       tofieldpath: spec.credentials.secretref.namespace
-  #     - fromfieldpath: spec.id
-  #       tofieldpath: spec.credentials.secretref.name
-  #       transforms:
-  #         - type: string
-  #           string:
-  #             fmt: "%s-akscluster"
-  #   readinesschecks:
-  #     - type: none
-  # - name: helm-uxp
-  #   base:
-  #       apiversion: helm.crossplane.io/v1beta1
-  #       kind: release
-  #       spec:
-  #         rollbacklimit: 3
-  #         forprovider:
-  #           namespace: upbound-system
-  #           chart:
-  #             name: universal-crossplane
-  #             repository: https://charts.upbound.io/stable
-  #             version: "1.6.1-up.1"
-  #           values: {}
-  #   patches:
-  #   - fromfieldpath: spec.id
-  #     tofieldpath: metadata.name
-  #     transforms:
-  #       - type: string
-  #         string:
-  #           fmt: "%s-uxp"
-  #   - fromfieldpath: spec.id
-  #     tofieldpath: spec.providerconfigref.name
-  # - name: crossplane
-  #   base:
-  #     apiversion: helm.crossplane.io/v1beta1
-  #     kind: release
-  #     spec:
-  #       rollbacklimit: 3
-  #       forprovider:
-  #         namespace: crossplane-system
-  #         chart:
-  #           name: crossplane
-  #           repository: https://charts.crossplane.io/stable
-  #           version: "1.5.0"
-  #   patches:
-  #   - fromfieldpath: spec.id
-  #     tofieldpath: metadata.name
-  #     transforms:
-  #       - type: string
-  #         string:
-  #           fmt: "%s-crossplane"
-  #   - fromfieldpath: spec.id
-  #     tofieldpath: spec.providerconfigref.name
+  - name: kubernetes
+    base:
+      apiVersion: kubernetes.crossplane.io/v1alpha1
+      kind: ProviderConfig
+      spec:
+        credentials:
+          source: Secret
+          secretRef:
+            key: kubeconfig
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+      toFieldPath: spec.credentials.secretRef.namespace
+    - fromFieldPath: spec.id
+      toFieldPath: spec.credentials.secretRef.name
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-akscluster"
+    readinessChecks:
+      - type: None
+  - name: k8s-ns-xp
+    base:
+      apiVersion: kubernetes.crossplane.io/v1alpha1
+      kind: Object
+      spec:
+        forProvider:
+          manifest:
+            apiVersion: v1
+            kind: Namespace
+            metadata:
+              name: upbound-system
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-ns-xp"
+    - fromFieldPath: spec.id
+      toFieldPath: spec.providerConfigRef.name
+
+  - name: helm
+    base:
+        apiVersion: helm.crossplane.io/v1beta1
+        kind: ProviderConfig
+        spec:
+          credentials:
+            source: Secret
+            secretRef:
+              key: kubeconfig
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+      toFieldPath: spec.credentials.secretRef.namespace
+    - fromFieldPath: spec.id
+      toFieldPath: spec.credentials.secretRef.name
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-akscluster"
+    readinessChecks:
+      - type: None
+  - name: helm-uxp
+    base:
+        apiVersion: helm.crossplane.io/v1beta1
+        kind: Release
+        spec:
+          rollbackLimit: 3
+          forProvider:
+            namespace: upbound-system
+            chart:
+              name: universal-crossplane
+              repository: https://charts.upbound.io/stable
+              version: "1.9.1-up.2"
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-uxp"
+    - fromFieldPath: spec.id
+      toFieldPath: spec.providerConfigRef.name

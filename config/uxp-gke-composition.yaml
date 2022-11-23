@@ -88,6 +88,10 @@ spec:
       patchSetName: metadata
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "vnet-%s"
 
   - name: compute-subnet
     base:
@@ -113,6 +117,10 @@ spec:
       patchSetName: region
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "snet-%s"
 
   - name: gkecluster
     base:
@@ -150,13 +158,17 @@ spec:
       patchSetName: location
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "cluster-%s"
     - fromFieldPath: spec.id
       toFieldPath: spec.forProvider.network
     - fromFieldPath: spec.id
       toFieldPath: spec.forProvider.subnetwork
     - fromFieldPath: spec.parameters.version
       toFieldPath: spec.forProvider.initialClusterVersion
-    - fromFieldPath: metadata.uid
+    - fromFieldPath: spec.id
       toFieldPath: spec.writeConnectionSecretToRef.name
       transforms:
       - type: string
@@ -213,6 +225,10 @@ spec:
       patchSetName: metadata
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "ng0%s"
     - fromFieldPath: spec.parameters.nodeCount
       toFieldPath: spec.forProvider.autoscaling[0].minNodeCount
     - fromFieldPath: spec.parameters.nodeCount
@@ -233,53 +249,105 @@ spec:
       fieldPath: status.conditions[0].status
       matchString: "True"
 
-  # - name: helm
-  #   base:
-  #       apiVersion: helm.crossplane.io/v1beta1
-  #       kind: ProviderConfig
-  #       spec:
-  #         credentials:
-  #           source: Secret
-  #           secretRef:
-  #             key: kubeconfig
-  #       identity:
-  #         type: GoogleApplicationCredentials
-  #         source: Secret
-  #         secretRef:
-  #           name: gcp-account-creds
-  #           key: credentials
-  #   patches:
-  #     - fromFieldPath: spec.id
-  #       toFieldPath: metadata.name
-  #     - fromFieldPath: spec.writeConnectionSecretToRef.namespace
-  #       toFieldPath: spec.credentials.secretRef.namespace
-  #     - fromFieldPath: spec.id
-  #       toFieldPath: spec.credentials.secretRef.name
-  #       transforms:
-  #         - type: string
-  #           string:
-  #             fmt: "%s-gkecluster"
-  #   readinessChecks:
-  #     - type: None
-  # - name: helm-uxp
-  #   base:
-  #       apiVersion: helm.crossplane.io/v1beta1
-  #       kind: Release
-  #       spec:
-  #         rollbackLimit: 3
-  #         forProvider:
-  #           namespace: upbound-system
-  #           chart:
-  #             name: universal-crossplane
-  #             repository: https://charts.upbound.io/stable
-  #             version: "1.6.1-up.1"
-  #           values: {}
-  #   patches:
-  #   - fromFieldPath: spec.id
-  #     toFieldPath: metadata.name
-  #     transforms:
-  #       - type: string
-  #         string:
-  #           fmt: "%s-uxp"
-  #   - fromFieldPath: spec.id
-  #     toFieldPath: spec.providerConfigRef.name
+  - name: kubernetes
+    base:
+      apiVersion: kubernetes.crossplane.io/v1alpha1
+      kind: ProviderConfig
+      spec:
+        credentials:
+          source: Secret
+          secretRef:
+            key: kubeconfig
+        identity:
+          type: GoogleApplicationCredentials
+          source: Secret
+          secretRef:
+            name: gcp-account-creds
+            key: credentials
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+      toFieldPath: spec.credentials.secretRef.namespace
+    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+      toFieldPath: spec.identity.secretRef.namespace
+    - fromFieldPath: spec.id
+      toFieldPath: spec.credentials.secretRef.name
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-gkecluster"
+    readinessChecks:
+      - type: None
+  - name: k8s-ns-xp
+    base:
+      apiVersion: kubernetes.crossplane.io/v1alpha1
+      kind: Object
+      spec:
+        forProvider:
+          manifest:
+            apiVersion: v1
+            kind: Namespace
+            metadata:
+              name: upbound-system
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-ns-xp"
+    - fromFieldPath: spec.id
+      toFieldPath: spec.providerConfigRef.name
+
+  - name: helm
+    base:
+        apiVersion: helm.crossplane.io/v1beta1
+        kind: ProviderConfig
+        spec:
+          credentials:
+            source: Secret
+            secretRef:
+              key: kubeconfig
+          identity:
+            type: GoogleApplicationCredentials
+            source: Secret
+            secretRef:
+              name: gcp-account-creds
+              key: credentials
+    patches:
+      - fromFieldPath: spec.id
+        toFieldPath: metadata.name
+      - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+        toFieldPath: spec.credentials.secretRef.namespace
+      - fromFieldPath: spec.id
+        toFieldPath: spec.credentials.secretRef.name
+        transforms:
+          - type: string
+            string:
+              fmt: "%s-gkecluster"
+      - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+        toFieldPath: spec.identity.secretRef.namespace
+    readinessChecks:
+      - type: None
+  - name: helm-uxp
+    base:
+        apiVersion: helm.crossplane.io/v1beta1
+        kind: Release
+        spec:
+          rollbackLimit: 3
+          forProvider:
+            namespace: upbound-system
+            chart:
+              name: universal-crossplane
+              repository: https://charts.upbound.io/stable
+              version: "1.9.1-up.2"
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-uxp"
+    - fromFieldPath: spec.id
+      toFieldPath: spec.providerConfigRef.name

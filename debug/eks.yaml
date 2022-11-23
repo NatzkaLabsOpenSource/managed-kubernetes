@@ -1,0 +1,122 @@
+---
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: Role
+metadata:
+  name: sample-eks-cluster
+spec:
+  forProvider:
+    assumeRolePolicy: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "eks.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+          }
+        ]
+      }
+  providerConfigRef:
+    name: aws-uxp-provider
+---
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: RolePolicyAttachment
+metadata:
+  name: sample-cluster-policy
+spec:
+  forProvider:
+    policyArn: arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+    roleRef:
+      name: sample-eks-cluster
+  providerConfigRef:
+    name: aws-uxp-provider
+---
+apiVersion: ec2.aws.upbound.io/v1beta1
+kind: VPC
+metadata:
+  labels:
+    upjet.upbound.io/test-group: apigatewayv2-vpclink
+  name: sample-vpc
+spec:
+  forProvider:
+    cidrBlock: 172.16.0.0/16
+    region: eu-west-1
+    tags:
+      Name: DemoVpc
+  providerConfigRef:
+    name: aws-uxp-provider
+---
+apiVersion: ec2.aws.upbound.io/v1beta1
+kind: Subnet
+metadata:
+  labels:
+    upjet.upbound.io/test-group: apigatewayv2-vpclink
+  name: sample-subnet1
+spec:
+  forProvider:
+    availabilityZone: eu-west-1a
+    cidrBlock: 172.16.0.0/24
+    region: eu-west-1
+    vpcIdRef:
+      name: sample-vpc
+  providerConfigRef:
+    name: aws-uxp-provider
+---
+apiVersion: ec2.aws.upbound.io/v1beta1
+kind: Subnet
+metadata:
+  labels:
+    upjet.upbound.io/test-group: apigatewayv2-vpclink
+  name: sample-subnet2
+spec:
+  forProvider:
+    availabilityZone: eu-west-1b
+    cidrBlock: 172.16.1.0/24
+    region: eu-west-1
+    vpcIdRef:
+      name: sample-vpc
+  providerConfigRef:
+    name: aws-uxp-provider
+---
+apiVersion: eks.aws.upbound.io/v1beta1
+kind: Cluster
+metadata:
+  annotations:
+    uptest.upbound.io/timeout: "2400"
+  labels:
+    testing.upbound.io/example-name: example
+  name: sample-eks-cluster
+spec:
+  forProvider:
+    region: eu-west-1
+    roleArnRef:
+      name: sample-eks-cluster
+    vpcConfig:
+    - subnetIdRefs:
+      - name: sample-subnet1
+      - name: sample-subnet2
+  providerConfigRef:
+    name: eks-uxp-provider
+  writeConnectionSecretToRef:
+    name: cluster-eks
+    namespace: default
+  providerConfigRef:
+    name: aws-uxp-provider
+---
+apiVersion: eks.aws.upbound.io/v1beta1
+kind: ClusterAuth
+metadata:
+  name: auth
+spec:
+  forProvider:
+    clusterNameSelector:
+      matchLabels:
+        testing.upbound.io/example-name: example
+    region: eu-west-1
+  writeConnectionSecretToRef:
+    name: cluster-conn
+    namespace: upbound-system
+  providerConfigRef:
+    name: aws-uxp-provider    

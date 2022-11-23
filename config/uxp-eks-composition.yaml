@@ -937,8 +937,8 @@ spec:
             endpointPublicAccess: true
             subnetIdSelector:
               matchControllerRef: true
-        writeConnectionSecretToRef:
-          namespace: upbound-system
+        # writeConnectionSecretToRef:
+        #   namespace: upbound-system
         providerConfigRef:
           name: aws-uxp-provider
     patches:
@@ -954,13 +954,13 @@ spec:
             fmt: "%s-controlplane"
     - fromFieldPath: spec.parameters.version
       toFieldPath: spec.forProvider.version
-    - fromFieldPath: spec.id
-      toFieldPath: spec.writeConnectionSecretToRef.name
-      transforms:
-        - type: string
-          string:
-            fmt: "%s-ekscluster"
-    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+    # - fromFieldPath: spec.id
+    #   toFieldPath: spec.writeConnectionSecretToRef.name
+    #   transforms:
+    #     - type: string
+    #       string:
+    #         fmt: "%s-ekscluster"
+    # - fromFieldPath: spec.writeConnectionSecretToRef.namespace
     - type: ToCompositeFieldPath
       fromFieldPath: metadata.name
       toFieldPath: status.clusterName
@@ -1059,3 +1059,115 @@ spec:
     - type: MatchString
       fieldPath: status.atProvider.status
       matchString: ACTIVE
+
+  - name: kubernetesClusterAuth
+    base:
+      apiVersion: eks.aws.upbound.io/v1beta1
+      kind: ClusterAuth
+      spec:
+        forProvider:
+          clusterNameSelector:
+            matchControllerRef: true
+        providerConfigRef:
+          name: aws-uxp-provider
+    patches:
+    - type: PatchSet
+      patchSetName: region
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+    - fromFieldPath: spec.id
+      toFieldPath: spec.writeConnectionSecretToRef.name
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-ekscluster"
+    connectionDetails:
+    - fromConnectionSecretKey: kubeconfig
+
+  - name: kubernetes
+    base:
+      apiVersion: kubernetes.crossplane.io/v1alpha1
+      kind: ProviderConfig
+      spec:
+        credentials:
+          source: Secret
+          secretRef:
+            key: kubeconfig
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+      toFieldPath: spec.credentials.secretRef.namespace
+    - fromFieldPath: spec.id
+      toFieldPath: spec.credentials.secretRef.name
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-ekscluster"
+    readinessChecks:
+      - type: None
+  - name: k8s-ns-xp
+    base:
+      apiVersion: kubernetes.crossplane.io/v1alpha1
+      kind: Object
+      spec:
+        forProvider:
+          manifest:
+            apiVersion: v1
+            kind: Namespace
+            metadata:
+              name: upbound-system
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-ns-xp"
+    - fromFieldPath: spec.id
+      toFieldPath: spec.providerConfigRef.name
+
+  - name: helm
+    base:
+        apiVersion: helm.crossplane.io/v1beta1
+        kind: ProviderConfig
+        spec:
+          credentials:
+            source: Secret
+            secretRef:
+              key: kubeconfig
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+      toFieldPath: spec.credentials.secretRef.namespace
+    - fromFieldPath: spec.id
+      toFieldPath: spec.credentials.secretRef.name
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-ekscluster"
+    readinessChecks:
+      - type: None
+  - name: helm-uxp
+    base:
+        apiVersion: helm.crossplane.io/v1beta1
+        kind: Release
+        spec:
+          rollbackLimit: 3
+          forProvider:
+            namespace: upbound-system
+            chart:
+              name: universal-crossplane
+              repository: https://charts.upbound.io/stable
+              version: "1.9.1-up.2"
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-uxp"
+    - fromFieldPath: spec.id
+      toFieldPath: spec.providerConfigRef.name

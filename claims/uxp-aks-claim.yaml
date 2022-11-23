@@ -4,7 +4,7 @@ metadata:
   name: uxpaks
   namespace: managed
   labels:
-    owner: andrzej
+    owner: natzka
 spec:
   id: uxpaks
   compositionSelector:
@@ -15,5 +15,7 @@ spec:
     version: "1.22.11"
     # nodeSize: small ### Supported values: small, medium, large
     # nodeCount: 3
+    # region:  use1, eus, euc
+    region: euw1    
   writeConnectionSecretToRef:
     name: uxpaks
