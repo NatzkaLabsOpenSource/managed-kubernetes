@@ -4,7 +4,7 @@ metadata:
   name: uxpeks
   namespace: managed
   labels:
-    owner: andrzej
+    owner: natzka
 spec:
   id: uxpeks
   compositionSelector:
@@ -16,5 +16,7 @@ spec:
     fargateNamespace: default
     # nodeSize: small ### Supported values: small, medium, large
     # nodeCount: 3
+    # region:  use1, eus, euc
+    region: euw1
   writeConnectionSecretToRef:
     name: uxpeks

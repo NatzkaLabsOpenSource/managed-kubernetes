@@ -1,31 +1,25 @@
-# What's new in Version 3.2
+# Scope
+This project was created to build managed Kubernetes `Composite Resource` (XR) with three
+compositions supporting three main cloud providers.
+Each XR can have one or more compositions. Each composition describes how XR should be created
+by defining provider package and list of resources (Managed Resources) which build it.
+This allows a Composition to act as a class of service.
+You can use it as a foundation to understand, build and operate managed Kubernetes Platform in the Cloud.
+This repository uses two crossplane distributions:
+* [XP  - Crossplane](https://crossplane.io/) - upstream project
+* [UXP - Upbound Universal Crossplane](https://docs.upbound.io/uxp/) - downstram distribution of crossplane maintained by Upbound
 
+## What's new in Version 3.2
 Added support for official providers maintained by upbound.
 
-# Scope
-
-This project was created to build managed Kubernetes `Composite Resource` (XR) with
-compositions supporting three main cloud providers. You can use it as a foundation to understand, build
-and operate managed Kubernetes Platform in the Cloud.
-This repository uses two crossplane distributions:
-[XP  - Crossplane](https://crossplane.io/) - upstream project
-[UXP - Upbound Universal Crossplane](https://docs.upbound.io/uxp/) - downstram distribution of crossplane maintained by Upbound
-
-Each XR can have one or more compositions. Each composition describes how XR should be created
-by defining provider package and list od resources which build XR (Managed Resources).
-This allows a Composition to act as a class of service. In this project we build managed-kubernetes
-as a XR. To be able to build managed kubernetes cluster for all three main cloud providers
-we have to define three compositions to build AKS, EKS and GKE.
-
 # Providers APIs
-
 Providers are Crossplane packages allowing provision the respective infrastructure.
 They differ between themselves by number of supported cloud resources (CRDs), written programming language
 and maintenance model.
 At that moment we can use three different cloud providers to build the composition:
 - Classic (Native) - maintained by XP community, the fastest one, written in Go with limited resource coverage.
 - Jet - maintained by XP community, based on Terraform, available in two packages one with similar coverage as
-  classic provider and one with -preview suffix with full resource coverage.
+  classic provider and one (with -preview suffix) with full resource coverage.
 - Official - maintained by Upbound, the newest one based on Upjet, with coverage between Native and Jet-preview.
 
 To give you an idea about current coverage state, based on AWS provider:
@@ -35,39 +29,32 @@ To give you an idea about current coverage state, based on AWS provider:
 * [official 364 CRDs](https://doc.crds.dev/github.com/upbound/provider-aws@v0.18.0)
 
 ## Classic Providers
-
 * [AWS Classic](https://doc.crds.dev/github.com/crossplane/provider-aws)
 * [Azure Classic](https://doc.crds.dev/github.com/crossplane/provider-azure)
 * [GCP Classic](https://doc.crds.dev/github.com/crossplane/provider-gcp)
 
 ## Jet Providers
-
 All resources which are needed to provision managed Kubernetes cluster are defined in smaller
-jet provider, so no need to install much bigger with -preview suffix.
+classic-jet provider, so no need to install much bigger with -preview suffix.
 
 * [AWS Jet](https://doc.crds.dev/github.com/crossplane-contrib/provider-jet-aws)
 * [Azure Jet](https://doc.crds.dev/github.com/crossplane-contrib/provider-jet-azure)
 * [GCP Jet](https://doc.crds.dev/github.com/crossplane-contrib/provider-jet-gcp)
 
 ## Official providers
-
-* [AWS Official](https://doc.crds.dev/github.com/upbound/provider-aws)
-* [Azure Official](https://doc.crds.dev/github.com/upbound/provider-azure)
-* [GCP Official](https://doc.crds.dev/github.com/upbound/provider-gcp)
-
-Alternatively you can use for API Upbound marketplace example for AWS:
-* [AWS](https://marketplace.upbound.io/providers/upbound/provider-aws/v0.18.0/resources/eks.aws.upbound.io/Cluster/v1beta1)
+* [AWS Official Doc](https://doc.crds.dev/github.com/upbound/provider-aws) or [AWS Marketplace](https://marketplace.upbound.io/providers/upbound/provider-aws/v0.20.0/crds)
+* [Azure Official](https://doc.crds.dev/github.com/upbound/provider-azure) or [Azure Marketplace](https://marketplace.upbound.io/providers/upbound/provider-azure/v0.19.0/crds)
+* [GCP Official](https://doc.crds.dev/github.com/upbound/provider-gcp) or [GCP Marketplace](https://marketplace.upbound.io/providers/upbound/provider-gcp/v0.18.0/crds)
 
 ## Other Providers
-
 Post Provisioning use Helm and Kubernetes Providers.
 
 * [Helm](https://doc.crds.dev/github.com/crossplane-contrib/provider-helm)
 * [Kubernetes](https://doc.crds.dev/github.com/crossplane-contrib/provider-kubernetes)
 
 To demonstrate usage for both post provisioning resources I created following examples:
-* Crossplane Provisioning using Helm Chart
-+ Production Namespace Provisioning using Kubernetes Manifest
+* (Universal) Crossplane Provisioning using Helm Chart
+* Production Namespace Provisioning using Kubernetes Manifest
 
 ## Prerequisites
 
@@ -371,13 +358,16 @@ release.helm.crossplane.io/xpgke-crossplane   crossplane   1.6.3     True     Tr
 
 ```
 # Using secret
-kubectl -n managed get secret xpaks --output jsonpath="{.data.kubeconfig}" | base64 -d | tee kubeconfig
-kubectl -n managed get secret xpeks --output jsonpath="{.data.kubeconfig}" | base64 -d | tee kubeconfig
+kubectl -n managed get secret uxpaks --output jsonpath="{.data.kubeconfig}" | base64 -d | tee kubeconfig
+kubectl -n managed get secret uxpeks --output jsonpath="{.data.kubeconfig}" | base64 -d | tee kubeconfig
+# For GKE use Cloud APIs
+kubectl -n managed get secret uxpgke --output jsonpath="{.data.kubeconfig}" | base64 -d | tee kubeconfig
 # To get credentials for GKE use cloud APIs.
 export KUBECONFIG=$PWD/kubeconfig
 
 # Using Cloud APIs
-gcloud container clusters get-credentials uxpgke --zone us-west2 --project <project name>
+export KUBECONFIG=$PWD/kubeconfig
+gcloud container clusters get-credentials cluster-uxpgke --region europe-west2 --project <project name>
 az aks get-credentials --resource-group rg-uxpaks --name uxpaks --admin
 aws eks --region us-west-1 update-kubeconfig --name uxpeks
 ```
@@ -501,7 +491,8 @@ kubectl get Cluster.eks.aws.upbound.io\
 ,SecurityGroup.ec2.aws.upbound.io\
 ,VPC.ec2.aws.upbound.io\
 ,RolePolicyAttachment.iam.aws.upbound.io\
-,Role.iam.aws.upbound.io
+,Role.iam.aws.upbound.io\
+,ClusterAuth.eks.aws.upbound.io
 
 # GKE
 kubectl get Network.compute.gcp.upbound.io\
