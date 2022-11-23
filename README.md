@@ -53,7 +53,7 @@ Post Provisioning use Helm and Kubernetes Providers.
 * [Kubernetes](https://doc.crds.dev/github.com/crossplane-contrib/provider-kubernetes)
 
 To demonstrate usage for both post provisioning resources I created following examples:
-* Crossplane Provisioning using Helm Chart
+* (Universal) Crossplane Provisioning using Helm Chart
 * Production Namespace Provisioning using Kubernetes Manifest
 
 ## Prerequisites
