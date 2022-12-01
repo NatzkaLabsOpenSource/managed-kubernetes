@@ -1,0 +1,30 @@
+---
+apiVersion: meta.pkg.crossplane.io/v1
+kind: Configuration
+metadata:
+  name: managed-kubernetes
+  annotations:
+    meta.crossplane.io/maintainer: AndrzejKozlowski <andrzej.kozlowski@natzka.com>
+    meta.crossplane.io/source: github.com/NatzkaLabsOpenSource/managed-kubernetes
+    meta.crossplane.io/license: Apache-2.0
+    meta.crossplane.io/description: |
+      Fully operational managed Kubernetes clusters (AKS, EKS and GKE)
+      with supporting services.
+    meta.crossplane.io/readme: |
+      A Configuration package that provision fully operational Kubernetes clusters
+      across multiple cloud providers, such AWS (EKS), Azure (AKS) and GCP (GKE)
+      with supporting infrastructure service such as Upbound Universal Crossplane (UXP)
+spec:
+  crossplane:
+    version: ">=v1.9.0-0"
+  dependsOn:
+    - provider: xpkg.upbound.io/upbound/provider-aws
+      version: ">=v0.21.0"
+    - provider: xpkg.upbound.io/upbound/provider-azure
+      version: ">=v0.19.0"
+    - provider: xpkg.upbound.io/upbound/provider-gcp
+      version: ">=v0.19.0"
+    - provider: xpkg.upbound.io/crossplane-contrib/provider-helm
+      version: ">=v0.12.0"
+    - provider: xpkg.upbound.io/crossplane-contrib/provider-kubernetes
+      version: ">=v0.5.0"

@@ -944,8 +944,14 @@ spec:
     patches:
     - type: PatchSet
       patchSetName: region
+    # - fromFieldPath: spec.id
+    #   toFieldPath: metadata.name
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "cluster-%s"
     - fromFieldPath: spec.id
       toFieldPath: spec.forProvider.roleArnSelector.matchLabels.role
       transforms:

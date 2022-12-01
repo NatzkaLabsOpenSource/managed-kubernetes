@@ -1,0 +1,178 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xmanagedclusters.compositions.io
+  annotations:
+    compositions.io/ui-schema: |-
+      ---
+      configSections:
+      - title: Cluster Info
+        description: Information about cluster
+        items:
+        - name: id
+          controlType: singleInput
+          type: string
+          path: ".spec.id"
+          title: Cluster ID
+          description: Cluster ID that other objects refer to
+          validation:
+          - required: true
+            customError: Cluster ID is required
+        - name: type
+          controlType: singleSelect
+          path: ".spec.compositionRef.name"
+          title: Cluster type
+          description: The type of the cluster
+          enum:
+          - eks
+          - gke
+          - aks
+          validation:
+          - required: true
+            customError: Cluster type is required.
+      - title: Node Group
+        description: Information about Node Group
+        items:
+        - name: version
+          controlType: singleInput
+          type: string
+          path: ".spec.parameters.version"
+          title: Kubernetes version
+          description: Supported by provider Kubernetes version
+          validation:
+          - required: true
+            customError: Kubernetes version type is required.
+        - name: region
+          controlType: singleSelect
+          path: ".spec.parameters.region"
+          title: Cloud Region
+          description: Cloud region for provisioned resources
+          enum:
+          - use1
+          - use2
+          - usw1
+          - usw2
+          - cac
+          - sae
+          - afs
+          - euc
+          - euw1
+          - euw2
+          - euw3
+          - eus
+          - eun
+          - ape
+          - aps1
+          - apne1
+          - apne2
+          - apne3
+          - apse1
+          - apse2
+          - apse3
+          default: use1
+          validation:
+          - required: false
+        - name: nodeSize
+          controlType: singleSelect
+          path: ".spec.parameters.nodeSize"
+          title: Node Size
+          description: Supported; small, medium or large. The specific size is determined by the vendor.
+          enum:
+          - small
+          - medium
+          - large
+          default: small
+          validation:
+          - required: false
+        - name: nodeCount
+          controlType: singleInput
+          type: integer
+          path: ".spec.parameters.nodeCount"
+          title: Desired Node Count
+          description: The initial number of nodes. The number of the nodes might increase due to enabled autoscaler.
+          default: 1
+          validation:
+          - minimum: 1
+          - maximum: 10
+          - required: false
+spec:
+  connectionSecretKeys:
+  - kubeconfig
+  defaultCompositionRef:
+    name: aks
+  group: compositions.io
+  names:
+    kind: XManagedCluster
+    plural: xmanagedclusters
+  claimNames:
+    kind: ManagedCluster
+    plural: managedclusters
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              id:
+                type: string
+                description: Cluster ID that other objects refer to
+              parameters:
+                type: object
+                properties:
+                  version:
+                    description: Supported by provider Kubernetes version
+                    type: string
+                  region:
+                    description: Cloud region for provisioned resources
+                    type: string
+                    default: use1
+                  nodeSize:
+                    description: The node's size; supported; small, medium, large
+                    type: string
+                    default: small
+                  nodeCount:
+                    description: The desired number of nodes
+                    type: integer
+                    default: 1
+                  fargateNamespace:
+                    description: The Namespace for Fargate Profile
+                    type: string
+                    default: default
+                required:
+                - version
+            required:
+            - id
+            - parameters
+          status:
+            type: object
+            properties:
+              clusterName:
+                description: The cluster name
+                type: string
+              controlPlaneStatus:
+                description: The control plane status
+                type: string
+              nodePoolStatus:
+                description: The node pool status
+                type: string
+              fargateProfileStatus:
+                description: The Fargate Profile status
+                type: string
+    additionalPrinterColumns:
+    - name: clusterName
+      type: string
+      jsonPath: ".status.clusterName"
+    - name: controlPlane
+      type: string
+      jsonPath: ".status.controlPlaneStatus"
+    - name: nodePool
+      type: string
+      jsonPath: ".status.nodePoolStatus"
+    - name: fargateProfile
+      type: string
+      jsonPath: ".status.fargateProfileStatus"
