@@ -7,6 +7,6 @@ spec:
   credentials:
     source: Secret
     secretRef:
-      namespace: ${PROVIDER_SECRET_NAMESPACE}
+      namespace: upbound-system
       name: azure-account-creds
       key: credentials
