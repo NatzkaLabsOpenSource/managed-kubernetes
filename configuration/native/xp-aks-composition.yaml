@@ -1,16 +1,16 @@
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
-  name: aks
+  name: native-aks
   labels:
     crossplane.io/xrd: xmanagedclusters.compositions.io
-    provider: classic
+    provider: native
     cluster: aks
 spec:
   compositeTypeRef:
     apiVersion: compositions.io/v1alpha1
     kind: XManagedCluster
-  writeConnectionSecretsToNamespace: crossplane-system 
+  writeConnectionSecretsToNamespace: crossplane-system
   patchSets:
   - name: metadata
     patches:
@@ -42,7 +42,8 @@ spec:
           apne3: japanwest
           apse1: southeastasia
           apse2: australiaeast
-          apse3: australiacentral 
+          apse3: australiacentral
+
   resources:
   - name: resourcegroup
     base:
@@ -50,7 +51,7 @@ spec:
       kind: ResourceGroup
       spec:
         providerConfigRef:
-          name: azure-provider
+          name: azure-xp-provider
     patches:
     - type: PatchSet
       patchSetName: metadata
@@ -65,19 +66,20 @@ spec:
     - type: ToCompositeFieldPath
       fromFieldPath: metadata.name
       toFieldPath: metadata.labels.resourcegroup
-  - name: vnet  
+
+  - name: vnet
     base:
       apiVersion: network.azure.crossplane.io/v1alpha3
-      kind: VirtualNetwork 
+      kind: VirtualNetwork
       spec:
-        resourceGroupNameSelector: 
+        resourceGroupNameSelector:
           matchControllerRef: true
         properties:
           addressSpace:
             addressPrefixes:
-            - 10.244.32.0/19        
+            - 10.2.0.0/16
         providerConfigRef:
-          name: azure-provider
+          name: azure-xp-provider
     patches:
     - type: PatchSet
       patchSetName: metadata
@@ -89,45 +91,45 @@ spec:
       - type: string
         string:
           fmt: "vnet-%s"
-  - name: subnet 
+
+  - name: subnet
     base:
       apiVersion: network.azure.crossplane.io/v1alpha3
-      kind: Subnet 
+      kind: Subnet
       spec:
-        resourceGroupNameSelector: 
+        resourceGroupNameSelector:
           matchControllerRef: true
         virtualNetworkNameSelector:
-          matchControllerRef: true 
+          matchControllerRef: true
         properties:
-          addressPrefix: 10.244.32.0/22
+          addressPrefix: 10.2.0.0/24
         providerConfigRef:
-          name: azure-provider
+          name: azure-xp-provider
     patches:
     - type: PatchSet
       patchSetName: metadata
-    # - type: PatchSet
-    #   patchSetName: region  
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
       transforms:
       - type: string
         string:
           fmt: "snet-%s"
+
   - name: aks
     base:
       apiVersion: compute.azure.crossplane.io/v1alpha3
       kind: AKSCluster
       spec:
-        dnsNamePrefix: xp
+        dnsNamePrefix: xpnative
         disableRBAC: false
-        resourceGroupNameSelector: 
+        resourceGroupNameSelector:
           matchControllerRef: true
         vnetSubnetIDSelector:
-          matchControllerRef: true  
+          matchControllerRef: true
         writeConnectionSecretToRef:
-          namespace: crossplane-system 
+          namespace: crossplane-system
         providerConfigRef:
-          name: azure-provider
+          name: azure-xp-provider
     patches:
     - type: PatchSet
       patchSetName: metadata
@@ -135,9 +137,13 @@ spec:
       patchSetName: region
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "cluster-%s"
     - type: ToCompositeFieldPath
       fromFieldPath: metadata.name
-      toFieldPath: status.clusterName       
+      toFieldPath: status.clusterName
     - fromFieldPath: spec.parameters.version
       toFieldPath: spec.version
     - fromFieldPath: spec.parameters.nodeCount
@@ -169,56 +175,14 @@ spec:
       transforms:
       - type: string
         string:
-          fmt: "NA4-%s" 
+          fmt: "NA4-%s"
     connectionDetails:
     - fromConnectionSecretKey: kubeconfig
     readinessChecks:
     - type: MatchString
       fieldPath: "status.state"
       matchString: "Succeeded"
-  - name: helm
-    base:
-        apiVersion: helm.crossplane.io/v1beta1
-        kind: ProviderConfig
-        spec:
-          credentials:
-            source: Secret
-            secretRef:
-              key: kubeconfig
-    patches:
-      - fromFieldPath: spec.id
-        toFieldPath: metadata.name
-      - fromFieldPath: spec.writeConnectionSecretToRef.namespace
-        toFieldPath: spec.credentials.secretRef.namespace
-      - fromFieldPath: spec.id
-        toFieldPath: spec.credentials.secretRef.name
-        transforms:
-          - type: string
-            string:
-              fmt: "%s-akscluster"
-    readinessChecks:
-      - type: None
-  - name: helm-crossplane
-    base:
-        apiVersion: helm.crossplane.io/v1beta1
-        kind: Release
-        spec:
-          rollbackLimit: 3
-          forProvider:
-            namespace: crossplane-system
-            chart:
-              name: crossplane
-              repository: https://charts.crossplane.io/stable
-              version: "1.6.3"
-    patches:
-    - fromFieldPath: spec.id
-      toFieldPath: metadata.name
-      transforms:
-        - type: string
-          string:
-            fmt: "%s-crossplane"
-    - fromFieldPath: spec.id
-      toFieldPath: spec.providerConfigRef.name
+
   - name: kubernetes
     base:
       apiVersion: kubernetes.crossplane.io/v1alpha1
@@ -251,13 +215,57 @@ spec:
             apiVersion: v1
             kind: Namespace
             metadata:
-              name: production
+              name: crossplane-system
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
       transforms:
         - type: string
           string:
-            fmt: "%s-ns-prod"
+            fmt: "%s-ns-xp"
+    - fromFieldPath: spec.id
+      toFieldPath: spec.providerConfigRef.name
+
+  - name: helm
+    base:
+        apiVersion: helm.crossplane.io/v1beta1
+        kind: ProviderConfig
+        spec:
+          credentials:
+            source: Secret
+            secretRef:
+              key: kubeconfig
+    patches:
+      - fromFieldPath: spec.id
+        toFieldPath: metadata.name
+      - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+        toFieldPath: spec.credentials.secretRef.namespace
+      - fromFieldPath: spec.id
+        toFieldPath: spec.credentials.secretRef.name
+        transforms:
+          - type: string
+            string:
+              fmt: "%s-akscluster"
+    readinessChecks:
+      - type: None
+  - name: helm-xp
+    base:
+        apiVersion: helm.crossplane.io/v1beta1
+        kind: Release
+        spec:
+          rollbackLimit: 3
+          forProvider:
+            namespace: crossplane-system
+            chart:
+              name: crossplane
+              repository: https://charts.crossplane.io/stable
+              version: "1.10.1"
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-crossplane"
     - fromFieldPath: spec.id
       toFieldPath: spec.providerConfigRef.name

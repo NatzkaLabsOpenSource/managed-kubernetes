@@ -4,19 +4,19 @@ metadata:
   name: xpgke
   namespace: managed
   labels:
-    owner: andrzej
+    owner: natzka
 spec:
   id: xpgke
   compositionSelector:
     matchLabels:
       cluster: gke
-      provider: classic
+      provider: native
   parameters:
-    version: "latest"
-    # version: "1.21.6"
+    version: "1.23"
+    # version: "latest"
     # nodeSize: small ### Supported values: small, medium, large
     # nodeCount: 3
     # region:  use1, euc
-    region: eus
+    region: euw2
   writeConnectionSecretToRef:
     name: xpgke

@@ -11,7 +11,6 @@ This repository uses two crossplane distributions:
 
 Thought it is possible to mix crossplane distributions with providers I will use following combinations in this repo:
 * XP + Native providers
-* XP + Jet providers
 * UXP + Official providers
 
 ## What's new in Version 3.2
@@ -21,35 +20,40 @@ Added support for official providers maintained by upbound.
 Providers are Crossplane packages allowing provision the respective infrastructure.
 They differ between themselves by number of supported cloud resources (CRDs), written programming language
 and maintenance model.
-At that moment we can use three different cloud providers to build the composition:
+At that moment we can use two different cloud providers to build the composition:
 - Native (Classic) - maintained by XP community, the fastest one, written in Go with limited resource coverage.
-- Jet - maintained by XP community, based on Terraform, available in two packages one with similar coverage as
-  classic provider and one (with -preview suffix) with full resource coverage.
 - Official - maintained by Upbound, the newest one based on Upjet, with coverage between Native and Jet-preview.
+
+There is another provider available, but it was [deprecated](https://github.com/crossplane/terrajet/issues/308)
+ and has been replaced by Official one:
+- Jet - maintained by XP community, based on Terrajet, available in two packages one with similar coverage as
+  classic provider and one (with -preview suffix) with full resource coverage.
+I will keep it for a time being in this project but it is not longer maintained and will be release in the future releases.
+
 
 To give you an idea about current coverage state, based on AWS provider:
 * [native 171 CRDs](https://doc.crds.dev/github.com/crossplane/provider-aws@v0.33.0)
+* [official 364 CRDs](https://doc.crds.dev/github.com/upbound/provider-aws@v0.18.0)
 * [jet 99 CRDs](https://doc.crds.dev/github.com/crossplane-contrib/provider-jet-aws@v0.5.0)
 * [jet-preview 780 CRDs](https://doc.crds.dev/github.com/crossplane-contrib/provider-jet-aws@v0.5.0-preview)
-* [official 364 CRDs](https://doc.crds.dev/github.com/upbound/provider-aws@v0.18.0)
 
 ## Native Providers
 * [AWS Native](https://doc.crds.dev/github.com/crossplane/provider-aws)
 * [Azure Native](https://doc.crds.dev/github.com/crossplane/provider-azure)
 * [GCP Native](https://doc.crds.dev/github.com/crossplane/provider-gcp)
 
-## Jet Providers
+## Official providers
+* [AWS Official Doc](https://doc.crds.dev/github.com/upbound/provider-aws) or [AWS Marketplace](https://marketplace.upbound.io/providers/upbound/provider-aws/v0.20.0/crds)
+* [Azure Official](https://doc.crds.dev/github.com/upbound/provider-azure) or [Azure Marketplace](https://marketplace.upbound.io/providers/upbound/provider-azure/v0.19.0/crds)
+* [GCP Official](https://doc.crds.dev/github.com/upbound/provider-gcp) or [GCP Marketplace](https://marketplace.upbound.io/providers/upbound/provider-gcp/v0.18.0/crds)
+
+## Jet Providers - deprecated
 All resources which are needed to provision managed Kubernetes cluster are defined in smaller
 classic-jet provider, so no need to install much bigger with -preview suffix.
 
 * [AWS Jet](https://doc.crds.dev/github.com/crossplane-contrib/provider-jet-aws)
 * [Azure Jet](https://doc.crds.dev/github.com/crossplane-contrib/provider-jet-azure)
 * [GCP Jet](https://doc.crds.dev/github.com/crossplane-contrib/provider-jet-gcp)
-
-## Official providers
-* [AWS Official Doc](https://doc.crds.dev/github.com/upbound/provider-aws) or [AWS Marketplace](https://marketplace.upbound.io/providers/upbound/provider-aws/v0.20.0/crds)
-* [Azure Official](https://doc.crds.dev/github.com/upbound/provider-azure) or [Azure Marketplace](https://marketplace.upbound.io/providers/upbound/provider-azure/v0.19.0/crds)
-* [GCP Official](https://doc.crds.dev/github.com/upbound/provider-gcp) or [GCP Marketplace](https://marketplace.upbound.io/providers/upbound/provider-gcp/v0.18.0/crds)
 
 ## Other Providers
 Post Provisioning use Helm and Kubernetes Providers.
@@ -68,10 +72,12 @@ Install Kubernetes Cluster. I recommend to use [Rancher Desktop](https://rancher
 ## Install crossplane
 
 ### Configure Upstream XP
-- Install XP cli
-`curl -sL https://raw.githubusercontent.com/crossplane/crossplane/master/install.sh | sh`
-- Install XP
+
 ```
+# Install XP cli
+curl -sL https://raw.githubusercontent.com/crossplane/crossplane/master/install.sh | sh
+
+# Install XP
 helm repo add crossplane-stable https://charts.crossplane.io/stable
 helm repo update
 
@@ -81,20 +87,24 @@ helm upgrade --install \
     --create-namespace \
     --wait
     # --set nodeSelector."agentpool"=xpjetaks2
-```
-- Verify status
-```
+
+# Verify status
 helm list -n crossplane-system
 kubectl get all -n crossplane-system
 ```
 
 ### Configure Downstream UXP
-- Install UP Command-Line
-`brew install upbound/tap/up`
-- Install UXP
-`up uxp install`
-- Verify status
-`kubectl get pods -n upbound-system`
+
+```
+# Install UP Command-Line
+brew install upbound/tap/up
+
+# Install UXP
+up uxp install
+
+# Verify status
+kubectl get pods -n upbound-system`
+```
 
 ## Setup Cloud Credentials
    - [Prepare cloud credentials](https://crossplane.io/docs/v1.10/reference/configure.html)
@@ -158,9 +168,11 @@ We need to provide two environment variables:
 
 ```console          
 # XP Native
-kubectl apply -f providers/xp-providers.yaml
+kubectl apply -f providers/native/xp-providers.yaml
+
 # Service providers
 kubectl apply -f providers/service-providers.yaml
+
 # Verification
 kubectl get provider
 ```
@@ -169,24 +181,45 @@ kubectl get provider
 
 ```console
 PROVIDER_SECRET_NAMESPACE=crossplane-system
-BASE64ENCODED_AWS_ACCOUNT_CREDS=$(base64 aws-cred.conf | tr -d "\n")
+BASE64ENCODED_AWS_ACCOUNT_CREDS=$(base64 -i aws-cred.conf | tr -d "\n")
 
 eval "echo \"$(cat providers/secret-aws-provider.yaml)\"" | kubectl apply -f -
-eval "echo \"$(cat providers/aws-provider.yaml)\"" | kubectl apply -f -
+eval "echo \"$(cat providers/native/xp-aws-providerconfig.yaml)\"" | kubectl apply -f -
 
 kubectl get providerconfig.aws.crossplane.io
+
+# Verification
+kubectl apply -f validation/native/xp-aws-bucket.yaml
+kubectl get Bucket.s3.aws.crossplane.io
+
+# AWS Validation using cmd (alternatively console UI)
+aws s3 ls --output table
+
+# Clean-up
+kubectl delete Bucket.s3.aws.crossplane.io xp-aws-bucket
 ```
 
 #### Native Azure Provider
 
 ```console
 PROVIDER_SECRET_NAMESPACE=crossplane-system
-BASE64ENCODED_AZURE_ACCOUNT_CREDS=$(base64 azure-cred.json | tr -d "\n")
+BASE64ENCODED_AZURE_ACCOUNT_CREDS=$(base64 -i azure-cred.json | tr -d "\n")
 
 eval "echo \"$(cat providers/secret-azure-provider.yaml)\"" | kubectl apply -f -
-eval "echo \"$(cat providers/azure-provider.yaml)\"" | kubectl apply -f -
+eval "echo \"$(cat providers/native/xp-azure-providerconfig.yaml)\"" | kubectl apply -f -
 
 kubectl get providerconfig.azure.crossplane.io
+
+# Verification
+kubectl apply -f validation/native/xp-azure-bucket.yaml
+kubectl get Account.storage.azure.crossplane.io
+
+# Azure Validation using cmd (alternatively console UI)
+az group show --resource-group xp-azure-rg -o table
+az storage account show -g xp-azure-rg -n xpazurebucket007 -o table
+
+# Clean-up
+kubectl delete Account.storage.azure.crossplane.io xpazurebucket007
 ```
 
 #### Native GCP Provider
@@ -195,63 +228,22 @@ For GCP we need additionally environment variable: PROJECT_ID.
 
 ```console
 PROVIDER_SECRET_NAMESPACE=crossplane-system
-BASE64ENCODED_GCP_PROVIDER_CREDS=$(base64 gcp-cred.json | tr -d "\n")
+BASE64ENCODED_GCP_PROVIDER_CREDS=$(base64 -i gcp-cred.json | tr -d "\n")
 PROJECT_ID=$(gcloud projects list --filter='NAME:<Project Name>' --format="value(PROJECT_ID.scope())")
 
 eval "echo \"$(cat providers/secret-gcp-provider.yaml)\"" | kubectl apply -f -
-eval "echo \"$(cat providers/gcp-provider.yaml)\"" | kubectl apply -f -
+eval "echo \"$(cat providers/native/xp-gcp-providerconfig.yaml)\"" | kubectl apply -f -
 
 kubectl get providerconfig.gcp.crossplane.io
-```
 
-### Jet Providers
-
-```console
-# XP Jet
-kubectl apply -f providers/jet-providers.yaml
-# Service providers
-kubectl apply -f providers/service-providers.yaml
 # Verification
-kubectl get provider
-```
+kubectl apply -f validation/native/xp-gcp-bucket.yaml
+kubectl get Bucket.storage.gcp.crossplane.io -w
 
-#### Jet AWS Provider
+# GCP Validation using cmd (alternatively console UI)
+gsutil ls -p <PROJECT_ID>
 
-```console
-PROVIDER_SECRET_NAMESPACE=crossplane-system
-BASE64ENCODED_AWS_ACCOUNT_CREDS=$(base64 aws-cred.conf | tr -d "\n")
-
-eval "echo \"$(cat providers/secret-aws-provider.yaml)\"" | kubectl apply -f -
-eval "echo \"$(cat providers/jet-aws-provider.yaml)\"" | kubectl apply -f -
-
-kubectl get providerconfig.aws.jet.crossplane.io
-```
-
-#### Jet Azure Provider
-
-```console
-PROVIDER_SECRET_NAMESPACE=crossplane-system
-BASE64ENCODED_AZURE_ACCOUNT_CREDS=$(base64 azure-cred.json | tr -d "\n")
-
-eval "echo \"$(cat providers/secret-azure-provider.yaml)\"" | kubectl apply -f -
-eval "echo \"$(cat providers/jet-azure-provider.yaml)\"" | kubectl apply -f -
-
-kubectl get providerconfig.azure.jet.crossplane.io
-```
-
-#### Jet GCP Provider
-
-For GCP we need additionally third environment variable: project ID.
-
-```console
-PROVIDER_SECRET_NAMESPACE=crossplane-system
-BASE64ENCODED_GCP_PROVIDER_CREDS=$(base64 gcp-cred.json | tr -d "\n")
-PROJECT_ID=$(gcloud projects list --filter='NAME:<Project Name>' --format="value(PROJECT_ID.scope())")
-
-eval "echo \"$(cat providers/secret-gcp-provider.yaml)\"" | kubectl apply -f -
-eval "echo \"$(cat providers/jet-gcp-provider.yaml)\"" | kubectl apply -f -
-
-kubectl get providerconfig.gcp.jet.crossplane.io
+kubectl delete Bucket.storage.gcp.crossplane.io xp-gcp-bucket
 ```
 
 ### Official providers
@@ -272,7 +264,7 @@ watch kubectl get pkg
 # UXP                     
 kubectl apply -f providers/official/uxp-providers.yaml              
 # Service providers
-kubectl apply -f providers/official/uxp-service-providers.yaml
+kubectl apply -f providers/service-providers.yaml
 
 kubectl get provider.pkg
 ```
@@ -289,7 +281,7 @@ kubectl apply -f providers/official/uxp-aws-providerconfig.yaml
 kubectl get providerconfig
 
 # Verification
-kubectl apply -f validation/uxp-aws-bucket.yaml
+kubectl apply -f validation/official/uxp-aws-bucket.yaml
 kubectl get Bucket.s3.aws.upbound.io -w
 
 # AWS Validation using cmd (alternatively console UI)
@@ -311,7 +303,7 @@ kubectl apply -f providers/official/uxp-azure-providerconfig.yaml
 kubectl get providerconfig
 
 # Verification
-kubectl apply -f validation/uxp-azure-bucket.yaml
+kubectl apply -f validation/official/uxp-azure-bucket.yaml
 kubectl get account.storage.azure.upbound.io/uxpazurebucket007 -w
 
 # Azure Validation using cmd (alternatively console UI)
@@ -337,13 +329,65 @@ eval "echo \"$(cat providers/official/uxp-gcp-providerconfig.yaml)\"" | kubectl 
 kubectl get providerconfig
 
 # Verification
-kubectl apply -f validation/uxp-gcp-bucket.yaml
+kubectl apply -f validation/official/uxp-gcp-bucket.yaml
 kubectl get Bucket.storage.gcp.upbound.io -w
 
 # GCP Validation using cmd (alternatively console UI)
 gsutil ls -p <PROJECT_ID>
 
 kubectl delete Bucket.storage.gcp.upbound.io uxp-gcp-bucket
+```
+
+### Jet Providers - deprecated
+
+```console
+# XP Jet
+kubectl apply -f providers/jet-providers.yaml
+
+# Service providers
+kubectl apply -f providers/service-providers.yaml
+
+# Verification
+kubectl get provider
+```
+
+#### Jet AWS Provider
+
+```console
+PROVIDER_SECRET_NAMESPACE=crossplane-system
+BASE64ENCODED_AWS_ACCOUNT_CREDS=$(base64 -i aws-cred.conf | tr -d "\n")
+
+eval "echo \"$(cat providers/secret-aws-provider.yaml)\"" | kubectl apply -f -
+eval "echo \"$(cat providers/jet-aws-provider.yaml)\"" | kubectl apply -f -
+
+kubectl get providerconfig.aws.jet.crossplane.io
+```
+
+#### Jet Azure Provider
+
+```console
+PROVIDER_SECRET_NAMESPACE=crossplane-system
+BASE64ENCODED_AZURE_ACCOUNT_CREDS=$(base64 -i azure-cred.json | tr -d "\n")
+
+eval "echo \"$(cat providers/secret-azure-provider.yaml)\"" | kubectl apply -f -
+eval "echo \"$(cat providers/jet-azure-provider.yaml)\"" | kubectl apply -f -
+
+kubectl get providerconfig.azure.jet.crossplane.io
+```
+
+#### Jet GCP Provider
+
+For GCP we need additionally third environment variable: project ID.
+
+```console
+PROVIDER_SECRET_NAMESPACE=crossplane-system
+BASE64ENCODED_GCP_PROVIDER_CREDS=$(base64 -i gcp-cred.json | tr -d "\n")
+PROJECT_ID=$(gcloud projects list --filter='NAME:<Project Name>' --format="value(PROJECT_ID.scope())")
+
+eval "echo \"$(cat providers/secret-gcp-provider.yaml)\"" | kubectl apply -f -
+eval "echo \"$(cat providers/jet-gcp-provider.yaml)\"" | kubectl apply -f -
+
+kubectl get providerconfig.gcp.jet.crossplane.io
 ```
 
 ## Clean-up
@@ -364,23 +408,19 @@ Crossplane divides responsibility for the infrastructure provisioning as follows
 Platform team creates compositions and composite resource definitions (XRDs) to define and configure
 managed kubernetes services infrastructure in cloud.
 
+### Native provider
+
 ```console
 # Compositions using Native providers
 kubectl apply -f configuration/native/definition.yaml
-kubectl apply -f configuration/native/eks-composition.yaml
-kubectl apply -f configuration/native/aks-composition.yaml
-kubectl apply -f configuration/native/gke-composition.yaml
-
-# Compositions using Jet providers
-kubectl apply -f configuration/jet/definition.yaml
-kubectl apply -f configuration/jet/jet-eks-composition.yaml
-kubectl apply -f configuration/jet/jet-aks-composition.yaml
-kubectl apply -f configuration/jet/jet-gke-composition.yaml
+kubectl apply -f configuration/native/xp-eks-composition.yaml
+kubectl apply -f configuration/native/xp-aks-composition.yaml
+kubectl apply -f configuration/native/xp-gke-composition.yaml
 ```
 
 ### Official provider
 
-```
+```console
 # Using configuration
 kubectl apply -f configuration/official.yaml
 kubectl get pkg
@@ -392,6 +432,16 @@ kubectl apply -f configuration/official/uxp-aks-composition.yaml
 kubectl apply -f configuration/official/uxp-gke-composition.yaml
 ```
 
+### Jet provider - deprecated
+
+```console
+# Compositions using Jet providers
+kubectl apply -f configuration/jet/definition.yaml
+kubectl apply -f configuration/jet/jet-eks-composition.yaml
+kubectl apply -f configuration/jet/jet-aks-composition.yaml
+kubectl apply -f configuration/jet/jet-gke-composition.yaml
+```
+
 ## Consuming the infrastructure by Dev team
 
 App team provisions infrastructure by creating claim objects for the XRDs defined by Ops team.
@@ -400,20 +450,19 @@ App team provisions infrastructure by creating claim objects for the XRDs define
 kubectl create ns managed
 
 # Claims using native provider
-kubectl apply -f claims/native/eks-claim.yaml
-kubectl apply -f claims/native/aks-claim.yaml
-kubectl apply -f claims/native/gke-claim.yaml
-
-# Claims using jet provider
-kubectl apply -f claims/jet/jet-eks-claim.yaml
-kubectl apply -f claims/jet/jet-aks-claim.yaml
-kubectl apply -f claims/jet/jet-gke-claim.yaml
+kubectl apply -f claims/native/xp-eks-claim.yaml
+kubectl apply -f claims/native/xp-aks-claim.yaml
+kubectl apply -f claims/native/xp-gke-claim.yaml
 
 # Claims using official provider
 kubectl apply -f claims/official/uxp-eks-claim.yaml
 kubectl apply -f claims/official/uxp-aks-claim.yaml
 kubectl apply -f claims/official/uxp-gke-claim.yaml
 
+# Claims using jet provider - deprecated
+kubectl apply -f claims/jet/jet-eks-claim.yaml
+kubectl apply -f claims/jet/jet-aks-claim.yaml
+kubectl apply -f claims/jet/jet-gke-claim.yaml
 ```
 
 ### Verifying Infrastructure status
@@ -425,7 +474,10 @@ We can check progress using:
 ```
 kubectl get managedcluster -n managed
 # Example Output
-NAME     CLUSTERNAME   CONTROLPLANE   NODEPOOL   FARGATEPROFILE   SYNCED   READY   CONNECTION-SECRET   AGE
+NAME     CLUSTERNAME      CONTROLPLANE   NODEPOOL   FARGATEPROFILE       SYNCED   READY   CONNECTION-SECRET   AGE
+xpaks    cluster-xpaks    Succeeded      Succeeded  NA4-cluster-xpaks    True     True    xpaks               7m
+xpgke    cluster-xpgke    RUNNING        RUNNING    NA4-cluster-xpgke    True     True    xpgke               9m1s
+xpeks    cluster-xpeks    ACTIVE         ACTIVE     ACTIVE               True     True    xpeks               14m
 uxpaks   cluster-uxpaks   True           True       NA4-cluster-uxpaks   True     True    uxpaks              5m59s
 uxpgke   cluster-uxpgke   True           True       NA4-cluster-uxpgke   True     True    uxpgke              11m
 uxpeks   cluster-uxpeks   ACTIVE         ACTIVE     ACTIVE               True     True    uxpeks              22m
@@ -444,6 +496,22 @@ release.helm.crossplane.io/xpaks-crossplane   crossplane   1.6.3     True     Tr
 ```
 
 ### Accessing infrastructure
+
+#### Native providers
+
+```
+# Using secrets (eks and aks)
+kubectl -n managed get secret xpeks --output jsonpath="{.data.kubeconfig}" | base64 -d | tee kubeconfig
+kubectl -n managed get secret xpaks --output jsonpath="{.data.kubeconfig}" | base64 -d | tee kubeconfig
+
+export KUBECONFIG=$PWD/kubeconfig
+
+# Using Cloud APIs
+export KUBECONFIG=$PWD/kubeconfig
+gcloud container clusters get-credentials cluster-xpgke --region europe-west2 --project <project name>
+```
+
+#### Official providers
 
 ```
 # Using secrets (eks and aks)
@@ -466,6 +534,12 @@ aws eks update-kubeconfig --region eu-west-1 --name cluster-uxpeks --alias uxpek
 Deleting claims will take care of clean-up of all managed resources created to satisfy the claim.
 
 ```console
+# Native
+kubectl delete managedcluster -n managed xpeks
+kubectl delete managedcluster -n managed xpaks
+kubectl delete managedcluster -n managed xpgke
+
+# Official
 kubectl delete managedcluster -n managed uxpeks
 kubectl delete managedcluster -n managed uxpaks
 kubectl delete managedcluster -n managed uxpgke
@@ -477,19 +551,19 @@ kubectl delete managedcluster -n managed uxpgke
 kubectl get providerconfig
 
 # Clean-up Native Providers
-kubectl delete providerconfig.aws.crossplane.io/aws-provider
-kubectl delete providerconfig.azure.crossplane.io azure-provider
-kubectl delete providerconfig.gcp.crossplane.io gcp-provider
-
-# Clean-up Jet Providers
-kubectl delete providerconfig.aws.jet.crossplane.io/aws-jet-provider
-kubectl delete providerconfig.azure.jet.crossplane.io azure-jet-provider
-kubectl delete providerconfig.gcp.jet.crossplane.io gcp-jet-provider
+kubectl delete providerconfig.aws.crossplane.io/aws-xp-provider
+kubectl delete providerconfig.azure.crossplane.io/azure-xp-provider
+kubectl delete providerconfig.gcp.crossplane.io/gcp-xp-provider
 
 # Clean-up Official Providers
 kubectl delete providerconfig.aws.upbound.io/aws-uxp-provider
 kubectl delete providerconfig.azure.upbound.io/azure-uxp-provider
 kubectl delete providerconfig.gcp.upbound.io/gcp-uxp-provider
+
+# Clean-up Jet Providers
+kubectl delete providerconfig.aws.jet.crossplane.io/aws-jet-provider
+kubectl delete providerconfig.azure.jet.crossplane.io azure-jet-provider
+kubectl delete providerconfig.gcp.jet.crossplane.io gcp-jet-provider
 ```
 
 ### Delete Cloud Secrets
@@ -506,42 +580,53 @@ kubectl delete secret -n crossplane-system gcp-account-creds
 kubectl delete secret -n upbound-system aws-account-creds
 kubectl delete secret -n upbound-system azure-account-creds
 kubectl delete secret -n upbound-system gcp-account-creds
-
 ```
 
 ### Uninstall Provider
 
 ```console
-# configuration
-
-
 # native
 kubectl delete provider.pkg aws-provider
 kubectl delete provider.pkg azure-provider
 kubectl delete provider.pkg gcp-provider
+## services
+kubectl delete provider.pkg provider-helm
+kubectl delete provider.pkg provider-kubernetes
 
-# jet
-kubectl delete provider.pkg aws-jet-provider
-kubectl delete provider.pkg azure-jet-provider
-kubectl delete provider.pkg gcp-jet-provider
-
-# official
+# official with manual
 kubectl delete provider.pkg aws-uxp-provider
 kubectl delete provider.pkg azure-uxp-provider
 kubectl delete provider.pkg gcp-uxp-provider
+kubectl delete provider.pkg provider-helm
+kubectl delete provider.pkg provider-kubernetes
 
+# official with configuration
+kubectl delete configuration.pkg.crossplane.io/natzka
 kubectl delete provider.pkg upbound-provider-aws
 kubectl delete provider.pkg upbound-provider-azure
 kubectl delete provider.pkg upbound-provider-gcp
 kubectl delete provider.pkg crossplane-contrib-provider-helm
 kubectl delete provider.pkg crossplane-contrib-provider-kubernetes
 
-# services
-kubectl delete provider.pkg provider-helm
-kubectl delete provider.pkg provider-kubernetes
+# jet
+kubectl delete provider.pkg aws-jet-provider
+kubectl delete provider.pkg azure-jet-provider
+kubectl delete provider.pkg gcp-jet-provider
 
 # Verification
 kubectl get provider.pkg
+```
+
+### Uninstall Crossplane
+
+```console
+# XP
+helm delete crossplane --namespace crossplane-system
+kubectl get pods -n crossplane-system
+
+# UXP
+up uxp uninstall
+kubectl get pods -n upbound-system
 ```
 
 # Troubleshooting
@@ -643,48 +728,6 @@ kubectl get providerconfig | grep aws
   * [AKS Claim](claims/native/aks-claim.yaml)    
   * [GKE Claim](claims/native/gke-claim.yaml)       
 
-## Jet providers
-
-* `configuration/jet/` - Composite Resource Definition (XRD) with satisfying Compositions
-  * [xmanagedcluster XRD](configuration/jet/definition.yaml)
-  * [eks composition](configuration/jet/jet-eks-composition.yaml) includes:
-    * `Role`
-    * `RolePolicyAttachment`
-    * `VPC`
-    * `SecurityGroup`, `SecurityGroupRule`
-    * `Subnet`
-    * `InternetGateway`
-    * `RouteTable`, `Route`, `RouteTableAssociation`
-    * `Cluster`
-    * `NodeGroup`
-    * `FargateProfile`
-    * `Relase`
-    * `Object`
-  * [aks composition](configuration/jet/jet-aks-composition.yaml) includes:
-    * `ResourceGroup`
-    * `VirtualNetwork`
-    * `Subnet`
-    * `KubernetesCluster`
-    * `KubernetesClusterNodePool`
-    * `Relase`
-    * `Object`   
-  * [gke composition](configuration/jet/jet-gke-composition.yaml) includes:
-    * `Network`
-    * `Subnetwork`
-    * `Cluster`
-    * `NodePool`
-    * `Relase`
-    * `Object`    
-* `providers/jet/` - Provider Installation and Configuration
-  * [Setup](providers/jet/jet-providers.yaml)
-  * [AWS Provider Config](providers/jet/jet-aws-providerconfig.yaml)    
-  * [Azure Provider Config](providers/jet/jet-azure-providerconfig.yaml)    
-  * [GCP Provider Config](providers/jet/jet-gcp-providerconfig.yaml)
-* `claims/jet/` - Examples to consume defined by Ops XRDs
-  * [EKS Jet Claim](claims/jet/jet-eks-claim.yaml)    
-  * [AKS Jet Claim](claims/jet/jet-aks-claim.yaml)    
-  * [GKE Jet Claim](claims/jet/jet-gke-claim.yaml)     
-
 ## Official providers
 
 * `configuration/official/` - Composite Resource Definition (XRD) with satisfying Compositions
@@ -727,6 +770,48 @@ kubectl get providerconfig | grep aws
   * [EKS Claim](claims/official/uxp-eks-claim.yaml)    
   * [AKS Claim](claims/official/uxp-aks-claim.yaml)    
   * [GKE Claim](claims/official/uxp-gke-claim.yaml)     
+
+## Jet providers
+
+* `configuration/jet/` - Composite Resource Definition (XRD) with satisfying Compositions
+  * [xmanagedcluster XRD](configuration/jet/definition.yaml)
+  * [eks composition](configuration/jet/jet-eks-composition.yaml) includes:
+    * `Role`
+    * `RolePolicyAttachment`
+    * `VPC`
+    * `SecurityGroup`, `SecurityGroupRule`
+    * `Subnet`
+    * `InternetGateway`
+    * `RouteTable`, `Route`, `RouteTableAssociation`
+    * `Cluster`
+    * `NodeGroup`
+    * `FargateProfile`
+    * `Relase`
+    * `Object`
+  * [aks composition](configuration/jet/jet-aks-composition.yaml) includes:
+    * `ResourceGroup`
+    * `VirtualNetwork`
+    * `Subnet`
+    * `KubernetesCluster`
+    * `KubernetesClusterNodePool`
+    * `Relase`
+    * `Object`   
+  * [gke composition](configuration/jet/jet-gke-composition.yaml) includes:
+    * `Network`
+    * `Subnetwork`
+    * `Cluster`
+    * `NodePool`
+    * `Relase`
+    * `Object`    
+* `providers/jet/` - Provider Installation and Configuration
+  * [Setup](providers/jet/jet-providers.yaml)
+  * [AWS Provider Config](providers/jet/jet-aws-providerconfig.yaml)    
+  * [Azure Provider Config](providers/jet/jet-azure-providerconfig.yaml)    
+  * [GCP Provider Config](providers/jet/jet-gcp-providerconfig.yaml)
+* `claims/jet/` - Examples to consume defined by Ops XRDs
+  * [EKS Jet Claim](claims/jet/jet-eks-claim.yaml)    
+  * [AKS Jet Claim](claims/jet/jet-aks-claim.yaml)    
+  * [GKE Jet Claim](claims/jet/jet-gke-claim.yaml)     
 
 # Contributing workflow
 

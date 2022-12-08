@@ -1,0 +1,15 @@
+---
+apiVersion: s3.aws.crossplane.io/v1beta1
+kind: Bucket
+metadata:
+  name: xp-aws-bucket
+spec:
+  forProvider:
+    acl: private    
+    locationConstraint: eu-west-1
+    tagging:
+      tagSet:
+      - key: provisioner
+        value: xp
+  providerConfigRef:
+    name: aws-xp-provider

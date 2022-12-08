@@ -162,6 +162,7 @@ spec:
       - type: string
         string:
           fmt: "cluster-%s"
+    #  2 below Not needed ?
     - fromFieldPath: spec.id
       toFieldPath: spec.forProvider.network
     - fromFieldPath: spec.id

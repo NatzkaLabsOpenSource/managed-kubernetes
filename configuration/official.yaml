@@ -4,5 +4,5 @@ metadata:
   name: natzka
 spec:
   package: xpkg.upbound.io/andrzej/natzka:v1.0
-  packagePullSecrets:
-    - name: package-pull-secret
+  # packagePullSecrets:
+  #   - name: package-pull-secret

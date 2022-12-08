@@ -12,10 +12,10 @@ spec:
       cluster: aks
       provider: official
   parameters:
-    version: "1.22.11"
+    version: "1.23.12"
     # nodeSize: small ### Supported values: small, medium, large
     # nodeCount: 3
     # region:  use1, eus, euc
-    region: euw1    
+    region: euw1
   writeConnectionSecretToRef:
     name: uxpaks
