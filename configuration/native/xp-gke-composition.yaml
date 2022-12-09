@@ -1,10 +1,10 @@
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
-  name: gke
+  name: native-gke
   labels:
     crossplane.io/xrd: xmanagedclusters.compositions.io
-    provider: classic
+    provider: native
     cluster: gke
 spec:
   compositeTypeRef:
@@ -25,7 +25,7 @@ spec:
           use1: us-east4
           use2: us-east1
           usw1: us-west2
-          usw2: us-west1 
+          usw2: us-west1
           cac: northamerica-northeast1
           sae: southamerica-east1
           afs: asia-east1
@@ -34,7 +34,7 @@ spec:
           euw2: europe-west2
           euw3: europe-west1
           eus: europe-west6
-          eun: europe-north1 
+          eun: europe-north1
           ape: asia-east2
           aps1: asia-south1
           apne1: asia-northeast1
@@ -53,7 +53,7 @@ spec:
           use1: us-east4
           use2: us-east1
           usw1: us-west2
-          usw2: us-west1 
+          usw2: us-west1
           cac: northamerica-northeast1
           sae: southamerica-east1
           afs: asia-east1
@@ -62,7 +62,7 @@ spec:
           euw2: europe-west2
           euw3: europe-west1
           eus: europe-west6
-          eun: europe-north1 
+          eun: europe-north1
           ape: asia-east2
           aps1: asia-south1
           apne1: asia-northeast1
@@ -70,10 +70,11 @@ spec:
           apne3: asia-northeast2
           apse1: asia-southeast1
           apse2: australia-southeast1
-          apse3: asia-southeast2           
+          apse3: asia-southeast2
+
   resources:
   - name: compute-net
-    base: 
+    base:
       apiVersion: compute.gcp.crossplane.io/v1beta1
       kind: Network
       spec:
@@ -82,12 +83,17 @@ spec:
           routingConfig:
             routingMode: REGIONAL
         providerConfigRef:
-          name: gcp-provider 
+          name: gcp-xp-provider
     patches:
     - type: PatchSet
       patchSetName: metadata
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "vnet-%s"
+
   - name: compute-subnet
     base:
       apiVersion: compute.gcp.crossplane.io/v1beta1
@@ -97,14 +103,14 @@ spec:
           networkSelector:
             matchControllerRef: true
           privateIpGoogleAccess: true
-          ipCidrRange: 172.16.0.0/16
+          ipCidrRange: 192.168.0.0/24
           secondaryIpRanges:
           - rangeName: pods
-            ipCidrRange: 10.200.0.0/14
+            ipCidrRange: 10.1.0.0/20
           - rangeName: services
-            ipCidrRange: 10.204.0.0/16      
+            ipCidrRange: 172.16.0.0/16
         providerConfigRef:
-          name: gcp-provider
+          name: gcp-xp-provider
     patches:
     - type: PatchSet
       patchSetName: metadata
@@ -112,13 +118,15 @@ spec:
       patchSetName: region
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "snet-%s"
+
   - name: gkecluster
     base:
       apiVersion: container.gcp.crossplane.io/v1beta2
       kind: Cluster
-      metadata:
-        labels:
-          fargateProfile: "NOT-APPLICABLE"
       spec:
         forProvider:
           addonsConfig:
@@ -135,20 +143,20 @@ spec:
           masterAuth:
             username:
           masterAuthorizedNetworksConfig:
-            enabled: false  
+            enabled: false
           monitoringService: monitoring.googleapis.com/kubernetes
           networkPolicy:
             enabled: true
           networkSelector:
-            matchControllerRef: true 
+            matchControllerRef: true
           networkConfig:
-            enableIntraNodeVisibility: true  
+            enableIntraNodeVisibility: true
           subnetworkSelector:
-            matchControllerRef: true 
+            matchControllerRef: true
         writeConnectionSecretToRef:
           namespace: crossplane-system
         providerConfigRef:
-          name: gcp-provider        
+          name: gcp-xp-provider
     patches:
     - type: PatchSet
       patchSetName: metadata
@@ -156,9 +164,13 @@ spec:
       patchSetName: location
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "cluster-%s"
     - type: ToCompositeFieldPath
       fromFieldPath: metadata.name
-      toFieldPath: status.clusterName     
+      toFieldPath: status.clusterName
     - fromFieldPath: spec.parameters.version
       toFieldPath: spec.forProvider.initialClusterVersion
     - fromFieldPath: spec.id
@@ -166,7 +178,7 @@ spec:
       transforms:
       - type: string
         string:
-          fmt: "%s-gkecluster"    
+          fmt: "%s-gkecluster"
     - fromFieldPath: spec.writeConnectionSecretToRef.namespace
     - type: ToCompositeFieldPath
       fromFieldPath: status.atProvider.status
@@ -177,9 +189,9 @@ spec:
       transforms:
       - type: string
         string:
-          fmt: "NA4-%s"   
+          fmt: "NA4-%s"
     connectionDetails:
-    - fromConnectionSecretKey: kubeconfig  
+    - fromConnectionSecretKey: kubeconfig
     readinessChecks:
     - type: MatchString
       fieldPath: "status.atProvider.status"
@@ -200,26 +212,34 @@ spec:
             - https://www.googleapis.com/auth/logging.write
             - https://www.googleapis.com/auth/monitoring
             - https://www.googleapis.com/auth/compute
+            - https://www.googleapis.com/auth/servicecontrol
+            - https://www.googleapis.com/auth/service.management.readonly
+            - https://www.googleapis.com/auth/trace.append
             shieldedInstanceConfig:
               enableIntegrityMonitoring: true
               enableSecureBoot: true
           autoscaling:
+            autoprovisioned: false
             enabled: true
-            maxNodeCount: 5
+            maxNodeCount: 10
           management:
             autoRepair: true
             autoUpgrade: false
         providerConfigRef:
-          name: gcp-provider
+          name: gcp-xp-provider
     patches:
     - type: PatchSet
       patchSetName: metadata
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "ng0%s"
     - fromFieldPath: spec.parameters.nodeCount
       toFieldPath: spec.forProvider.autoscaling.minNodeCount
     - fromFieldPath: spec.parameters.nodeCount
-      toFieldPath: spec.forProvider.initialNodeCount  
+      toFieldPath: spec.forProvider.initialNodeCount
     - fromFieldPath: spec.parameters.nodeSize
       toFieldPath: spec.forProvider.config.machineType
       transforms:
@@ -227,7 +247,7 @@ spec:
         map:
           small: e2-standard-2
           medium: e2-standard-4
-          large: e2-standard-16      
+          large: e2-standard-16
     - type: ToCompositeFieldPath
       fromFieldPath: status.atProvider.status
       toFieldPath: status.nodePoolStatus
@@ -235,6 +255,59 @@ spec:
     - type: MatchString
       fieldPath: status.atProvider.status
       matchString: RUNNING
+
+  - name: kubernetes
+    base:
+      apiVersion: kubernetes.crossplane.io/v1alpha1
+      kind: ProviderConfig
+      spec:
+        credentials:
+          source: Secret
+          secretRef:
+            key: kubeconfig
+        identity:
+          type: GoogleApplicationCredentials
+          source: Secret
+          secretRef:
+            namespace: crossplane-system
+            name: gcp-account-creds
+            key: credentials
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+      toFieldPath: spec.credentials.secretRef.namespace
+    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+      toFieldPath: spec.identity.secretRef.namespace
+    - fromFieldPath: spec.id
+      toFieldPath: spec.credentials.secretRef.name
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-gkecluster"
+    readinessChecks:
+      - type: None
+  - name: k8s-ns-xp
+    base:
+      apiVersion: kubernetes.crossplane.io/v1alpha1
+      kind: Object
+      spec:
+        forProvider:
+          manifest:
+            apiVersion: v1
+            kind: Namespace
+            metadata:
+              name: crossplane-system
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-ns-xp"
+    - fromFieldPath: spec.id
+      toFieldPath: spec.providerConfigRef.name
+
   - name: helm
     base:
         apiVersion: helm.crossplane.io/v1beta1
@@ -255,17 +328,17 @@ spec:
         toFieldPath: metadata.name
       - fromFieldPath: spec.writeConnectionSecretToRef.namespace
         toFieldPath: spec.credentials.secretRef.namespace
+      - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+        toFieldPath: spec.identity.secretRef.namespace
       - fromFieldPath: spec.id
         toFieldPath: spec.credentials.secretRef.name
         transforms:
           - type: string
             string:
               fmt: "%s-gkecluster"
-      - fromFieldPath: spec.writeConnectionSecretToRef.namespace
-        toFieldPath: spec.identity.secretRef.namespace
     readinessChecks:
       - type: None
-  - name: helm-crossplane
+  - name: helm-xp
     base:
         apiVersion: helm.crossplane.io/v1beta1
         kind: Release
@@ -276,7 +349,7 @@ spec:
             chart:
               name: crossplane
               repository: https://charts.crossplane.io/stable
-              version: "1.6.3"
+              version: "1.10.1"
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
@@ -284,56 +357,5 @@ spec:
         - type: string
           string:
             fmt: "%s-crossplane"
-    - fromFieldPath: spec.id
-      toFieldPath: spec.providerConfigRef.name
-  - name: kubernetes
-    base:
-      apiVersion: kubernetes.crossplane.io/v1alpha1
-      kind: ProviderConfig
-      spec:
-        credentials:
-          source: Secret
-          secretRef:
-            key: kubeconfig
-        identity:
-          type: GoogleApplicationCredentials
-          source: Secret
-          secretRef:
-            namespace: crossplane-system
-            name: gcp-account-creds
-            key: credentials          
-    patches:
-    - fromFieldPath: spec.id
-      toFieldPath: metadata.name
-    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
-      toFieldPath: spec.credentials.secretRef.namespace
-    - fromFieldPath: spec.id
-      toFieldPath: spec.credentials.secretRef.name
-      transforms:
-        - type: string
-          string:
-            fmt: "%s-gkecluster"
-    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
-      toFieldPath: spec.identity.secretRef.namespace      
-    readinessChecks:
-      - type: None
-  - name: k8s-ns-prod
-    base:
-      apiVersion: kubernetes.crossplane.io/v1alpha1
-      kind: Object
-      spec:
-        forProvider:
-          manifest:
-            apiVersion: v1
-            kind: Namespace
-            metadata:
-              name: production
-    patches:
-    - fromFieldPath: spec.id
-      toFieldPath: metadata.name
-      transforms:
-        - type: string
-          string:
-            fmt: "%s-ns-prod"
     - fromFieldPath: spec.id
       toFieldPath: spec.providerConfigRef.name

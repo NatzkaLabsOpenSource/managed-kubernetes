@@ -4,20 +4,18 @@ metadata:
   name: xpeks
   namespace: managed
   labels:
-    owner: andrzej
+    owner: natzka
 spec:
   id: xpeks
   compositionSelector:
     matchLabels:
       cluster: eks
-      provider: classic
+      provider: native
   parameters:
-    version: "1.22"
+    version: "1.23"
     fargateNamespace: default
     # nodeSize: small ### Supported values: small, medium, large
     # nodeCount: 3
-    # region:  apne2
-    # region: usw1
     region: euw1
   writeConnectionSecretToRef:
     name: xpeks

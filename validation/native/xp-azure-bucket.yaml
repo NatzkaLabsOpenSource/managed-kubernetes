@@ -1,0 +1,29 @@
+---
+apiVersion: azure.crossplane.io/v1alpha3
+kind: ResourceGroup
+metadata:
+  name: xp-azure-rg
+spec:
+  location: northeurope
+  providerConfigRef:
+    name: azure-xp-provider
+---
+apiVersion: storage.azure.crossplane.io/v1alpha3
+kind: Account
+metadata:
+  name: xpazurebucket007
+spec:
+  storageAccountSpec:
+    kind: Storage
+    location: northeurope
+    sku:
+      name: Standard_LRS
+      tier: Standard
+    tags:
+      provisioner: xp
+  resourceGroupName: xp-azure-rg
+  providerConfigRef:
+    name: azure-xp-provider
+  writeConnectionSecretToRef:
+    name: xp-azure-sa
+    namespace: crossplane-system

@@ -4,19 +4,18 @@ metadata:
   name: xpaks
   namespace: managed
   labels:
-    owner: andrzej
+    owner: natzka
 spec:
   id: xpaks
   compositionSelector:
     matchLabels:
       cluster: aks
-      provider: classic
+      provider: native
   parameters:
-    version: "1.22.11"
-    # nodeSize: small
+    version: "1.23.12"
+    # nodeSize: small ### Supported values: small, medium, large
     # nodeCount: 3
-    # region:  use1
-    # region: eus
+    # region:  use1, eus, euc
     region: euw1
   writeConnectionSecretToRef:
     name: xpaks

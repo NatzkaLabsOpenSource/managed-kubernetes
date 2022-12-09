@@ -1,13 +1,12 @@
 ---
-apiVersion: gcp.crossplane.io/v1beta1
+apiVersion: aws.crossplane.io/v1beta1
 kind: ProviderConfig
 metadata:
-  name: gcp-provider
+  name: aws-xp-provider
 spec:
-  projectID: ${PROJECT_ID}
   credentials:
     source: Secret
     secretRef:
       namespace: ${PROVIDER_SECRET_NAMESPACE}
-      name: gcp-account-creds
+      name: aws-account-creds
       key: credentials

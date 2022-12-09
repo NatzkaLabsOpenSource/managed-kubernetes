@@ -1,10 +1,10 @@
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
-  name: eks
+  name: native-eks
   labels:
     crossplane.io/xrd: xmanagedclusters.compositions.io
-    provider: classic
+    provider: native
     cluster: eks
 spec:
   compositeTypeRef:
@@ -312,7 +312,7 @@ spec:
               ]
             }
         providerConfigRef:
-          name: aws-provider
+          name: aws-xp-provider
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
@@ -350,7 +350,7 @@ spec:
               ]
             }
         providerConfigRef:
-          name: aws-provider
+          name: aws-xp-provider
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
@@ -388,7 +388,7 @@ spec:
               ]
             }
         providerConfigRef:
-          name: aws-provider
+          name: aws-xp-provider
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
@@ -414,7 +414,7 @@ spec:
           roleNameSelector:
             matchControllerRef: true
         providerConfigRef:
-          name: aws-provider
+          name: aws-xp-provider
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
@@ -438,7 +438,7 @@ spec:
           roleNameSelector:
             matchControllerRef: true
         providerConfigRef:
-          name: aws-provider
+          name: aws-xp-provider
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
@@ -462,7 +462,7 @@ spec:
           roleNameSelector:
             matchControllerRef: true
         providerConfigRef:
-          name: aws-provider
+          name: aws-xp-provider
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
@@ -486,7 +486,7 @@ spec:
           roleNameSelector:
             matchControllerRef: true
         providerConfigRef:
-          name: aws-provider
+          name: aws-xp-provider
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
@@ -510,7 +510,7 @@ spec:
           roleNameSelector:
             matchControllerRef: true
         providerConfigRef:
-          name: aws-provider
+          name: aws-xp-provider
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
@@ -534,7 +534,7 @@ spec:
           roleNameSelector:
             matchControllerRef: true
         providerConfigRef:
-          name: aws-provider
+          name: aws-xp-provider
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
@@ -549,7 +549,7 @@ spec:
         string:
           fmt: "%s-fargateprofile"
 
-  - name: ec2-vpc
+  - name: ec2vpc
     base:
       apiVersion: ec2.aws.crossplane.io/v1beta1
       kind: VPC
@@ -558,9 +558,9 @@ spec:
           cidrBlock: 10.0.0.0/16
           tags:
           - key: Name
-            value: eks-cluster
+            value: eks-vpc
         providerConfigRef:
-          name: aws-provider
+          name: aws-xp-provider
     patches:
     - type: PatchSet
       patchSetName: region
@@ -582,12 +582,39 @@ spec:
             ipRanges:
             - cidrIp: "0.0.0.0/0"
         providerConfigRef:
-          name: aws-provider
+          name: aws-xp-provider
     patches:
     - type: PatchSet
       patchSetName: region
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-sg"
+
+  # - name: ec2sg-rule
+  #   base:
+  #     apiVersion: ec2.aws.crossplane.io/v1alpha1
+  #     kind: SecurityGroupRule
+  #     spec:
+  #       forProvider:
+  #         securityGroupIdSelector:
+  #           matchControllerRef: true
+  #         type: egress
+  #         protocol: "-1"
+  #         cidrBlock: "0.0.0.0/0"
+  #       providerConfigRef:
+  #         name: aws-xp-provider
+  #   patches:
+  #   - type: PatchSet
+  #     patchSetName: region
+  #   - fromFieldPath: spec.id
+  #     toFieldPath: metadata.name
+  #     transforms:
+  #     - type: string
+  #       string:
+  #         fmt: "%s-sgrule"
 
   - name: ec2snet-pub-a
     base:
@@ -595,7 +622,6 @@ spec:
       kind: Subnet
       metadata:
         labels:
-          zone: a
           access: public
       spec:
         forProvider:
@@ -605,11 +631,11 @@ spec:
           mapPublicIPOnLaunch: true
           tags:
           - key: Name
-            value: eks-cluster
+            value: eks-snet-pub
           - key: kubernetes.io/role/elb
             value: "1"
         providerConfigRef:
-          name: aws-provider
+          name: aws-xp-provider
     patches:
     - type: PatchSet
       patchSetName: region
@@ -627,7 +653,6 @@ spec:
       kind: Subnet
       metadata:
         labels:
-          zone: b
           access: public
       spec:
         forProvider:
@@ -637,11 +662,11 @@ spec:
           mapPublicIPOnLaunch: true
           tags:
           - key: Name
-            value: eks-cluster
+            value: eks-snet-pub
           - key: kubernetes.io/role/elb
             value: "1"
         providerConfigRef:
-          name: aws-provider
+          name: aws-xp-provider
     patches:
     - type: PatchSet
       patchSetName: region
@@ -659,7 +684,6 @@ spec:
       kind: Subnet
       metadata:
         labels:
-          zone: c
           access: public
       spec:
         forProvider:
@@ -669,11 +693,11 @@ spec:
           mapPublicIPOnLaunch: true
           tags:
           - key: Name
-            value: eks-cluster
+            value: eks-snet-pub
           - key: kubernetes.io/role/elb
             value: "1"
         providerConfigRef:
-          name: aws-provider
+          name: aws-xp-provider
     patches:
     - type: PatchSet
       patchSetName: region
@@ -692,7 +716,6 @@ spec:
       kind: Subnet
       metadata:
         labels:
-          zone: a
           access: private
       spec:
         forProvider:
@@ -702,9 +725,9 @@ spec:
           mapPublicIPOnLaunch: true
           tags:
           - key: Name
-            value: eks-cluster
+            value: eks-snet-prv
         providerConfigRef:
-          name: aws-provider
+          name: aws-xp-provider
     patches:
     - type: PatchSet
       patchSetName: region
@@ -722,7 +745,6 @@ spec:
       kind: Subnet
       metadata:
         labels:
-          zone: b
           access: private
       spec:
         forProvider:
@@ -732,9 +754,9 @@ spec:
           mapPublicIPOnLaunch: true
           tags:
           - key: Name
-            value: eks-cluster
+            value: eks-snet-prv
         providerConfigRef:
-          name: aws-provider
+          name: aws-xp-provider
     patches:
     - type: PatchSet
       patchSetName: region
@@ -752,7 +774,6 @@ spec:
       kind: Subnet
       metadata:
         labels:
-          zone: c
           access: private
       spec:
         forProvider:
@@ -762,9 +783,9 @@ spec:
           mapPublicIPOnLaunch: true
           tags:
           - key: Name
-            value: eks-cluster
+            value: eks-snet-prv
         providerConfigRef:
-          name: aws-provider
+          name: aws-xp-provider
     patches:
     - type: PatchSet
       patchSetName: region
@@ -786,7 +807,7 @@ spec:
           vpcIdSelector:
             matchControllerRef: true
         providerConfigRef:
-          name: aws-provider
+          name: aws-xp-provider
     patches:
     - type: PatchSet
       patchSetName: region
@@ -822,7 +843,7 @@ spec:
                   zone: c
                   access: public
         providerConfigRef:
-          name: aws-provider
+          name: aws-xp-provider
     patches:
     - type: PatchSet
       patchSetName: region
@@ -830,6 +851,10 @@ spec:
       patchSetName: route-zones
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-rt"
 
   - name: ekscluster
     base:
@@ -847,12 +872,16 @@ spec:
         writeConnectionSecretToRef:
           namespace: crossplane-system
         providerConfigRef:
-          name: aws-provider
+          name: aws-xp-provider
     patches:
     - type: PatchSet
       patchSetName: region
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
+      transforms:
+      - type: string
+        string:
+          fmt: "cluster-%s"
     - fromFieldPath: spec.id
       toFieldPath: spec.forProvider.roleArnSelector.matchLabels.role
       transforms:
@@ -896,9 +925,9 @@ spec:
             matchLabels:
               access: public
           scalingConfig:
-            maxSize: 5
+            maxSize: 10
         providerConfigRef:
-          name: aws-provider
+          name: aws-xp-provider
     patches:
     - type: PatchSet
       patchSetName: region
@@ -929,6 +958,7 @@ spec:
     - type: MatchString
       fieldPath: status.atProvider.status
       matchString: ACTIVE
+
   - name: eksfargate
     base:
       apiVersion: eks.aws.crossplane.io/v1beta1
@@ -944,7 +974,7 @@ spec:
             matchLabels:
               access: private
         providerConfigRef:
-          name: aws-provider
+          name: aws-xp-provider
     patches:
     - type: PatchSet
       patchSetName: region
@@ -965,6 +995,49 @@ spec:
     - type: MatchString
       fieldPath: status.atProvider.status
       matchString: ACTIVE
+
+  - name: kubernetes
+    base:
+      apiVersion: kubernetes.crossplane.io/v1alpha1
+      kind: ProviderConfig
+      spec:
+        credentials:
+          source: Secret
+          secretRef:
+            key: kubeconfig
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+      toFieldPath: spec.credentials.secretRef.namespace
+    - fromFieldPath: spec.id
+      toFieldPath: spec.credentials.secretRef.name
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-ekscluster"
+    readinessChecks:
+      - type: None
+  - name: k8s-ns-xp
+    base:
+      apiVersion: kubernetes.crossplane.io/v1alpha1
+      kind: Object
+      spec:
+        forProvider:
+          manifest:
+            apiVersion: v1
+            kind: Namespace
+            metadata:
+              name: crossplane-system
+    patches:
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+      transforms:
+        - type: string
+          string:
+            fmt: "%s-ns-xp"
+    - fromFieldPath: spec.id
+      toFieldPath: spec.providerConfigRef.name
 
   - name: helm
     base:
@@ -988,7 +1061,7 @@ spec:
               fmt: "%s-ekscluster"
     readinessChecks:
       - type: None
-  - name: helm-crossplane
+  - name: helm-xp
     base:
         apiVersion: helm.crossplane.io/v1beta1
         kind: Release
@@ -999,7 +1072,7 @@ spec:
             chart:
               name: crossplane
               repository: https://charts.crossplane.io/stable
-              version: "1.6.3"
+              version: "1.10.1"
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
@@ -1007,47 +1080,5 @@ spec:
         - type: string
           string:
             fmt: "%s-crossplane"
-    - fromFieldPath: spec.id
-      toFieldPath: spec.providerConfigRef.name
-  - name: kubernetes
-    base:
-      apiVersion: kubernetes.crossplane.io/v1alpha1
-      kind: ProviderConfig
-      spec:
-        credentials:
-          source: Secret
-          secretRef:
-            key: kubeconfig
-    patches:
-    - fromFieldPath: spec.id
-      toFieldPath: metadata.name
-    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
-      toFieldPath: spec.credentials.secretRef.namespace
-    - fromFieldPath: spec.id
-      toFieldPath: spec.credentials.secretRef.name
-      transforms:
-        - type: string
-          string:
-            fmt: "%s-ekscluster"
-    readinessChecks:
-      - type: None
-  - name: k8s-ns-prod
-    base:
-      apiVersion: kubernetes.crossplane.io/v1alpha1
-      kind: Object
-      spec:
-        forProvider:
-          manifest:
-            apiVersion: v1
-            kind: Namespace
-            metadata:
-              name: production
-    patches:
-    - fromFieldPath: spec.id
-      toFieldPath: metadata.name
-      transforms:
-        - type: string
-          string:
-            fmt: "%s-ns-prod"
     - fromFieldPath: spec.id
       toFieldPath: spec.providerConfigRef.name

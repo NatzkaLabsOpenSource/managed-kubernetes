@@ -12,7 +12,7 @@ spec:
       cluster: eks
       provider: official
   parameters:
-    version: "1.21"
+    version: "1.23"
     fargateNamespace: default
     # nodeSize: small ### Supported values: small, medium, large
     # nodeCount: 3

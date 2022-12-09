@@ -1,0 +1,11 @@
+---
+apiVersion: storage.gcp.crossplane.io/v1alpha3
+kind: Bucket
+metadata:
+  name: xp-gcp-bucket
+spec:
+  location: europe-west2
+  labels:
+    provisioner: xp
+  providerConfigRef:
+    name: gcp-xp-provider
