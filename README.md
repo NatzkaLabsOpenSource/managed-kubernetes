@@ -445,6 +445,7 @@ kubectl apply -f configuration/jet/jet-gke-composition.yaml
 ## Consuming the infrastructure by Dev team
 
 App team provisions infrastructure by creating claim objects for the XRDs defined by Ops team.
+In claim manifest file please ensure that you used supported [region](docs/cloud-regions.MD)
 
 ```console
 kubectl create ns managed

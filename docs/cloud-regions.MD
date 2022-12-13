@@ -1,4 +1,4 @@
-# Region Abstraction
+# Supported Regions
 
 | AWS Name | AWS | Azure | GCP | Code
 |--|--|--|--|--|
@@ -8,9 +8,9 @@
 | US West (Oregon) | us-west-2 | westus2 | us-west1  | USW2 |
 | Canada (Central) | ca-central-1 | canadacentral | northamerica-northeast1 | CAC |
 |  |  |  |  |  |
-| South America (São Paulo) | sa-east-1 | brazilsouth | southamerica-east1 | SAE | 
+| South America (São Paulo) | sa-east-1 | brazilsouth | southamerica-east1 | SAE |
 |  |  |  |  |  |
-| Africa (Cape Town) | af-south-1 | southafricanorth | asia-east1 | AFS | 
+| Africa (Cape Town) | af-south-1 | southafricanorth | asia-east1 | AFS |
 | Europe (Frankfurt) | eu-central-1 | germanywestcentral | europe-west3 | EUC |
 | Europe (Ireland) | eu-west-1 | northeurope | europe-west4 | EUW1 |
 | Europe (London) | eu-west-2 | uksouth | europe-west2 | EUW2 |
@@ -42,7 +42,7 @@ apse3: ap-southeast-3 # default: disable`
 
 ## AZs in regions
 
-Three Standard AZs for most of the regions with postfix a,b,c: 
+Three Standard AZs for most of the regions with postfix a,b,c:
 ```
 us-east-2: us-east-2a, us-east-2b, us-east-2c   
 ```
@@ -57,5 +57,3 @@ Exceptions important for XR resources: Subnet and Route Tables
 * usw1: us-west-1       # ac,  no B zone, in XR Zone B mapped to A
 * cac: ca-central-1     # abd, no C Zone, in XR Zone C mapped to B (Fargate profile not supported in zone D)
 * apne1: ap-northeast-1 # acd, no B zone, in XR Zone B mapped to D
-
-
