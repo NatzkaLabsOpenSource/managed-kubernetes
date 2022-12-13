@@ -1,4 +1,4 @@
-# supported Regions
+# Supported Regions
 
 | AWS Name | AWS | Azure | GCP | Code
 |--|--|--|--|--|
