@@ -10,7 +10,7 @@ spec:
   compositeTypeRef:
     apiVersion: compositions.io/v1alpha1
     kind: XManagedCluster
-  writeConnectionSecretsToNamespace: crossplane-system 
+  writeConnectionSecretsToNamespace: crossplane-system
   patchSets:
   - name: metadata
     patches:
@@ -42,7 +42,7 @@ spec:
           apne3: japanwest
           apse1: southeastasia
           apse2: australiaeast
-          apse3: australiacentral 
+          apse3: australiacentral
   resources:
   - name: resourcegroup
     base:
@@ -65,16 +65,16 @@ spec:
     - type: ToCompositeFieldPath
       fromFieldPath: metadata.name
       toFieldPath: metadata.labels.resourcegroup
-  - name: vnet  
+  - name: vnet
     base:
       apiVersion: network.azure.jet.crossplane.io/v1alpha2
-      kind: VirtualNetwork 
+      kind: VirtualNetwork
       spec:
         forProvider:
-          resourceGroupNameSelector: 
+          resourceGroupNameSelector:
             matchControllerRef: true
           addressSpace:
-          - 10.244.32.0/19        
+          - 10.244.32.0/19
         providerConfigRef:
           name: azure-jet-provider
     patches:
@@ -88,17 +88,17 @@ spec:
       - type: string
         string:
           fmt: "vnet-%s"
-  - name: subnet 
+  - name: subnet
     base:
       apiVersion: network.azure.jet.crossplane.io/v1alpha2
-      kind: Subnet 
+      kind: Subnet
       spec:
         forProvider:
-          resourceGroupNameSelector: 
+          resourceGroupNameSelector:
             matchControllerRef: true
           virtualNetworkNameSelector:
-            matchControllerRef: true 
-          addressPrefixes: 
+            matchControllerRef: true
+          addressPrefixes:
           - "10.244.32.0/22"
         providerConfigRef:
           name: azure-jet-provider
@@ -120,18 +120,18 @@ spec:
           dnsPrefix: xpjet
           roleBasedAccessControl:
           - enabled: true
-          resourceGroupNameSelector: 
+          resourceGroupNameSelector:
             matchControllerRef: true
           defaultNodePool:
           - name: default
             nodeCount: 1
-            vmSize: Standard_D2s_v3 
-            vnetSubnetIDSelector:
+            vmSize: Standard_D2s_v3
+            vnetSubnetIdSelector:
               matchControllerRef: true
           identity:
-          - type: "SystemAssigned"     
+          - type: "SystemAssigned"
         writeConnectionSecretToRef:
-          namespace: crossplane-system 
+          namespace: crossplane-system
         providerConfigRef:
           name: azure-jet-provider
     patches:
@@ -174,7 +174,7 @@ spec:
       transforms:
       - type: string
         string:
-          fmt: "NA4-%s" 
+          fmt: "NA4-%s"
     connectionDetails:
     - fromConnectionSecretKey: kubeconfig
     readinessChecks:
@@ -189,8 +189,8 @@ spec:
         forProvider:
           kubernetesClusterIdSelector:
             matchControllerRef: true
-          vnetSubnetIDSelector:
-            matchControllerRef: true 
+          vnetSubnetIdSelector:
+            matchControllerRef: true
         providerConfigRef:
           name: azure-jet-provider
     patches:
@@ -218,45 +218,45 @@ spec:
 
   - name: helm
     base:
-        apiVersion: helm.crossplane.io/v1beta1
-        kind: ProviderConfig
-        spec:
-          credentials:
-            source: Secret
-            secretRef:
-              key: kubeconfig
+      apiVersion: helm.crossplane.io/v1beta1
+      kind: ProviderConfig
+      spec:
+        credentials:
+          source: Secret
+          secretRef:
+            key: kubeconfig
     patches:
-      - fromFieldPath: spec.id
-        toFieldPath: metadata.name
-      - fromFieldPath: spec.writeConnectionSecretToRef.namespace
-        toFieldPath: spec.credentials.secretRef.namespace
-      - fromFieldPath: spec.id
-        toFieldPath: spec.credentials.secretRef.name
-        transforms:
-          - type: string
-            string:
-              fmt: "%s-akscluster"
+    - fromFieldPath: spec.id
+      toFieldPath: metadata.name
+    - fromFieldPath: spec.writeConnectionSecretToRef.namespace
+      toFieldPath: spec.credentials.secretRef.namespace
+    - fromFieldPath: spec.id
+      toFieldPath: spec.credentials.secretRef.name
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-akscluster"
     readinessChecks:
-      - type: None
+    - type: None
   - name: helm-crossplane
     base:
-        apiVersion: helm.crossplane.io/v1beta1
-        kind: Release
-        spec:
-          rollbackLimit: 3
-          forProvider:
-            namespace: crossplane-system
-            chart:
-              name: crossplane
-              repository: https://charts.crossplane.io/stable
-              version: "1.7.0"
+      apiVersion: helm.crossplane.io/v1beta1
+      kind: Release
+      spec:
+        rollbackLimit: 3
+        forProvider:
+          namespace: crossplane-system
+          chart:
+            name: crossplane
+            repository: https://charts.crossplane.io/stable
+            version: "1.7.0"
     patches:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
       transforms:
-        - type: string
-          string:
-            fmt: "%s-crossplane"
+      - type: string
+        string:
+          fmt: "%s-crossplane"
     - fromFieldPath: spec.id
       toFieldPath: spec.providerConfigRef.name
   - name: kubernetes
@@ -276,11 +276,11 @@ spec:
     - fromFieldPath: spec.id
       toFieldPath: spec.credentials.secretRef.name
       transforms:
-        - type: string
-          string:
-            fmt: "%s-akscluster"
+      - type: string
+        string:
+          fmt: "%s-akscluster"
     readinessChecks:
-      - type: None
+    - type: None
   - name: k8s-ns-prod
     base:
       apiVersion: kubernetes.crossplane.io/v1alpha1
@@ -296,8 +296,8 @@ spec:
     - fromFieldPath: spec.id
       toFieldPath: metadata.name
       transforms:
-        - type: string
-          string:
-            fmt: "%s-ns-prod"
+      - type: string
+        string:
+          fmt: "%s-ns-prod"
     - fromFieldPath: spec.id
       toFieldPath: spec.providerConfigRef.name
